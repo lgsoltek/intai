@@ -730,8 +730,8 @@ function _Chat() {
   const [promptHints, setPromptHints] = useState<RenderPrompt[]>([]);
   const onSearch = useDebouncedCallback(
     (text: string) => {
-      const matchedPrompts = promptStore.search(text);
-      setPromptHints(matchedPrompts);
+    // Disable prompt hints by setting an empty array
+      setPromptHints([]);
     },
     100,
     { leading: true, trailing: true },
