@@ -143,7 +143,8 @@ export function ModelConfigList(props: {
           >
             <input
               type="checkbox"
-              checked={props.modelConfig.enableInjectSystemPrompts}
+              checked={true} // always checked
+              disabled={true} // Disabled so the user can't change it
               onChange={(e) =>
                 props.updateConfig(
                   (config) =>
