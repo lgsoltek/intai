@@ -479,7 +479,7 @@ export function ChatActions(props: {
   const [showUploadImage, setShowUploadImage] = useState(false);
 
   useEffect(() => {
-    const show = isVisionModel(currentModel);
+    const show = false;  // Always set to false to disable image upload
     setShowUploadImage(show);
     if (!show) {
       props.setAttachImages([]);
