@@ -432,14 +432,13 @@ export const useChatStore = createPersistStore(
         }
       },
 
-      const SYSTEM_PROMPT_CONTENT = require('./systemPrompt');
-
       getMessagesWithMemory() {
         const session = get().currentSession();
         const modelConfig = session.mask.modelConfig;
         const clearContextIndex = session.clearContextIndex ?? 0;
         const messages = session.messages.slice();
         const totalMessageCount = session.messages.length;
+        const SYSTEM_PROMPT_CONTENT = require('./systemPrompt');
 
         // in-context prompts
         const contextPrompts = session.mask.context.slice();
