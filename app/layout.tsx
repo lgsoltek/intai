@@ -10,10 +10,10 @@ import { GoogleTagManager } from "@next/third-parties/google";
 const serverConfig = getServerSideConfig();
 
 export const metadata: Metadata = {
-  title: "TransAssist",
+  title: "AssisTran",
   description: "Pour améliorer votre traduction.",
   appleWebApp: {
-    title: "TransAssist",
+    title: "AssisTran",
     statusBarStyle: "default",
   },
 };
