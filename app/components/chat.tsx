@@ -1270,7 +1270,7 @@ function _Chat() {
               <IconButton
                 icon={<RenameIcon />}
                 bordered
-                onClick={() => setIsEditingMessage(true)}
+                onClick={() => setIsEditingMessage(false)}
               />
             </div>
           )}
