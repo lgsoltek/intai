@@ -4,6 +4,7 @@ import {
   DEFAULT_INPUT_TEMPLATE,
   DEFAULT_MODELS,
   DEFAULT_SIDEBAR_WIDTH,
+  MIN_SIDEBAR_WIDTH,
   StoreKey,
   ServiceProvider,
 } from "../constant";
@@ -32,14 +33,14 @@ export const DEFAULT_CONFIG = {
 
   submitKey: SubmitKey.Enter,
   avatar: "1f603",
-  fontSize: 14,
+  fontSize: 15,
   theme: Theme.Auto as Theme,
   tightBorder: !!config?.isApp,
   sendPreviewBubble: true,
   enableAutoGenerateTitle: true,
   sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
 
-  disablePromptHint: false,
+  disablePromptHint: true,
 
   dontShowMaskSplashScreen: true, // dont show splash screen when create chat
   hideBuiltinMasks: true, // dont add builtin masks
@@ -135,7 +136,7 @@ export const useAppConfig = createPersistStore(
   }),
   {
     name: StoreKey.Config,
-    version: 3.9,
+    version: 4.2,
     migrate(persistedState, version) {
       const state = persistedState as ChatConfig;
 
@@ -171,6 +172,16 @@ export const useAppConfig = createPersistStore(
           state.modelConfig.template !== DEFAULT_INPUT_TEMPLATE
             ? state.modelConfig.template
             : config?.template ?? DEFAULT_INPUT_TEMPLATE;
+      }
+
+      state.enableAutoGenerateTitle = true;
+
+      if (version < 4.1 && (!state.fontSize || state.fontSize === 14)) {
+        state.fontSize = 15;
+      }
+
+      if (state.sidebarWidth < MIN_SIDEBAR_WIDTH) {
+        state.sidebarWidth = DEFAULT_SIDEBAR_WIDTH;
       }
 
       return state as any;

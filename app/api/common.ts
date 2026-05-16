@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSideConfig } from "../config/server";
-import {
-  DEFAULT_MODELS,
-  OPENAI_BASE_URL,
-  GEMINI_BASE_URL,
-  ServiceProvider,
-} from "../constant";
+import { OPENAI_BASE_URL, ServiceProvider } from "../constant";
 import { isModelAvailableInServer } from "../utils/model";
 import { cloudflareAIGatewayUrl } from "../utils/cloudflare";
 
@@ -14,31 +9,17 @@ const serverConfig = getServerSideConfig();
 export async function requestOpenai(req: NextRequest) {
   const controller = new AbortController();
 
-  const isAzure = req.nextUrl.pathname.includes("azure/deployments");
-
   var authValue,
     authHeaderName = "";
-  if (isAzure) {
-    authValue =
-      req.headers
-        .get("Authorization")
-        ?.trim()
-        .replaceAll("Bearer ", "")
-        .trim() ?? "";
-
-    authHeaderName = "api-key";
-  } else {
-    authValue = req.headers.get("Authorization") ?? "";
-    authHeaderName = "Authorization";
-  }
+  authValue = req.headers.get("Authorization") ?? "";
+  authHeaderName = "Authorization";
 
   let path = `${req.nextUrl.pathname}${req.nextUrl.search}`.replaceAll(
     "/api/openai/",
     "",
   );
 
-  let baseUrl =
-    (isAzure ? serverConfig.azureUrl : serverConfig.baseUrl) || OPENAI_BASE_URL;
+  let baseUrl = serverConfig.baseUrl || OPENAI_BASE_URL;
 
   if (!baseUrl.startsWith("http")) {
     baseUrl = `https://${baseUrl}`;
@@ -48,9 +29,6 @@ export async function requestOpenai(req: NextRequest) {
     baseUrl = baseUrl.slice(0, -1);
   }
 
-  console.log("[Proxy] ", path);
-  console.log("[Base Url]", baseUrl);
-
   const timeoutId = setTimeout(
     () => {
       controller.abort();
@@ -58,46 +36,7 @@ export async function requestOpenai(req: NextRequest) {
     10 * 60 * 1000,
   );
 
-  if (isAzure) {
-    const azureApiVersion =
-      req?.nextUrl?.searchParams?.get("api-version") ||
-      serverConfig.azureApiVersion;
-    baseUrl = baseUrl.split("/deployments").shift() as string;
-    path = `${req.nextUrl.pathname.replaceAll(
-      "/api/azure/",
-      "",
-    )}?api-version=${azureApiVersion}`;
-
-    // Forward compatibility:
-    // if display_name(deployment_name) not set, and '{deploy-id}' in AZURE_URL
-    // then using default '{deploy-id}'
-    if (serverConfig.customModels && serverConfig.azureUrl) {
-      const modelName = path.split("/")[1];
-      let realDeployName = "";
-      serverConfig.customModels
-        .split(",")
-        .filter((v) => !!v && !v.startsWith("-") && v.includes(modelName))
-        .forEach((m) => {
-          const [fullName, displayName] = m.split("=");
-          const [_, providerName] = fullName.split("@");
-          if (providerName === "azure" && !displayName) {
-            const [_, deployId] = (serverConfig?.azureUrl ?? "").split(
-              "deployments/",
-            );
-            if (deployId) {
-              realDeployName = deployId;
-            }
-          }
-        });
-      if (realDeployName) {
-        console.log("[Replace with DeployId", realDeployName);
-        path = path.replaceAll(modelName, realDeployName);
-      }
-    }
-  }
-
   const fetchUrl = cloudflareAIGatewayUrl(`${baseUrl}/${path}`);
-  console.log("fetchUrl", fetchUrl);
   const fetchOptions: RequestInit = {
     headers: {
       "Content-Type": "application/json",
@@ -116,25 +55,26 @@ export async function requestOpenai(req: NextRequest) {
     signal: controller.signal,
   };
 
-  // #1815 try to refuse gpt4 request
-  if (serverConfig.customModels && req.body) {
+  // Teacher-controlled deployments can force one model from DEFAULT_MODEL.
+  // This keeps students from bypassing the hidden model selector with local state edits.
+  if ((serverConfig.customModels || serverConfig.defaultModel) && req.body) {
     try {
       const clonedBody = await req.text();
-      fetchOptions.body = clonedBody;
-
       const jsonBody = JSON.parse(clonedBody) as { model?: string };
+      if (serverConfig.defaultModel) {
+        jsonBody.model = serverConfig.defaultModel;
+        fetchOptions.body = JSON.stringify(jsonBody);
+      } else {
+        fetchOptions.body = clonedBody;
+      }
 
       // not undefined and is false
       if (
+        serverConfig.customModels &&
         isModelAvailableInServer(
           serverConfig.customModels,
           jsonBody?.model as string,
           ServiceProvider.OpenAI as string,
-        ) ||
-        isModelAvailableInServer(
-          serverConfig.customModels,
-          jsonBody?.model as string,
-          ServiceProvider.Azure as string,
         )
       ) {
         return NextResponse.json(
@@ -160,8 +100,7 @@ export async function requestOpenai(req: NextRequest) {
 
     // Check if serverConfig.openaiOrgId is defined and not an empty string
     if (serverConfig.openaiOrgId && serverConfig.openaiOrgId.trim() !== "") {
-      // If openaiOrganizationHeader is present, log it; otherwise, log that the header is not present
-      console.log("[Org ID]", openaiOrganizationHeader);
+      console.log("[Org ID]", openaiOrganizationHeader ? "set" : "not set");
     } else {
       console.log("[Org ID] is not set up.");
     }

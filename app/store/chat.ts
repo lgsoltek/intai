@@ -11,7 +11,6 @@ import {
   KnowledgeCutOffDate,
   StoreKey,
   SUMMARIZE_MODEL,
-  GEMINI_SUMMARIZE_MODEL,
 } from "../constant";
 import { getClientApi } from "../client/api";
 import type {
@@ -103,9 +102,6 @@ function getSummarizeModel(currentModel: string) {
       (m) => m.name === SUMMARIZE_MODEL && m.available,
     );
     return summarizeModel?.name ?? currentModel;
-  }
-  if (currentModel.startsWith("gemini")) {
-    return GEMINI_SUMMARIZE_MODEL;
   }
   return currentModel;
 }
@@ -438,26 +434,26 @@ export const useChatStore = createPersistStore(
         const clearContextIndex = session.clearContextIndex ?? 0;
         const messages = session.messages.slice();
         const totalMessageCount = session.messages.length;
-        const SYSTEM_PROMPT_CONTENT = require('./systemPrompt');
+        const SYSTEM_PROMPT_CONTENT = require("./systemPrompt");
 
         // in-context prompts
         const contextPrompts = session.mask.context.slice();
-        
+
         // system prompts, to get close to OpenAI Web ChatGPT
         const shouldInjectSystemPrompts =
           modelConfig.enableInjectSystemPrompts &&
           session.mask.modelConfig.model.startsWith("gpt-");
 
         var systemPrompts: ChatMessage[] = [];
-       systemPrompts = shouldInjectSystemPrompts
-  ? [
-      createMessage({
-        role: "system",
-        content: SYSTEM_PROMPT_CONTENT,
-      }),
-    ]
-  : [];
-        
+        systemPrompts = shouldInjectSystemPrompts
+          ? [
+              createMessage({
+                role: "system",
+                content: SYSTEM_PROMPT_CONTENT,
+              }),
+            ]
+          : [];
+
         if (shouldInjectSystemPrompts) {
           console.log(
             "[Global System Prompt] ",

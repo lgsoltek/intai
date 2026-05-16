@@ -157,6 +157,51 @@
   animation: slide-in ease 0.3s;
 }
 
+.student-card {
+  margin-bottom: 16px;
+  padding: 14px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--primary) 12%, var(--white));
+  border: 1px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  box-shadow: 0 8px 24px rgba(29, 147, 171, 0.12);
+  animation: slide-in ease 0.3s;
+}
+
+.student-card-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--black);
+  opacity: 0.65;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.student-card-name {
+  font-size: 20px;
+  line-height: 1.25;
+  font-weight: 800;
+  color: var(--black);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-card-id,
+.student-card-empty {
+  margin-top: 6px;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--black);
+  opacity: 0.78;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-card-empty {
+  font-size: 16px;
+}
+
 .sidebar-body {
   flex: 1;
   overflow: auto;

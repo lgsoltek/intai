@@ -7,14 +7,14 @@ const tw = {
   WIP: "此功能仍在開發中……",
   Error: {
     Unauthorized: isApp
-      ? "偵測到無效的 API Key，請前往[設定](/#/settings)頁面檢查 API Key 是否設定正確。"
-      : "存取密碼不正確或尚未填寫，請前往[登入](/#/auth)頁面輸入正確的存取密碼，或者在[設定](/#/settings)頁面填入你自己的 OpenAI API Key。",
+      ? "存取密碼不正確或尚未填寫，請前往[登入](/#/auth)頁面輸入正確的存取密碼。"
+      : "存取密碼不正確或尚未填寫，請前往[登入](/#/auth)頁面輸入正確的存取密碼。",
   },
 
   Auth: {
     Title: "需要密碼",
     Tips: "管理員開啟了密碼驗證，請在下方填入存取密碼",
-    SubTips: "或者輸入你的 OpenAI 或 Google API 金鑰",
+    SubTips: "",
     Input: "在此處填寫存取密碼",
     Confirm: "確認",
     Later: "稍候再說",
@@ -241,7 +241,7 @@ const tw = {
       },
       List: "自訂提示詞列表",
       ListCount: (builtin: number, custom: number) =>
-      `內建 ${builtin} 條，使用者自訂 ${custom} 條`,
+        `內建 ${builtin} 條，使用者自訂 ${custom} 條`,
       Edit: "編輯",
       Modal: {
         Title: "提示詞列表",

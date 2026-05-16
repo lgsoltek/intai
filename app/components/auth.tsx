@@ -7,27 +7,50 @@ import { useAccessStore } from "../store";
 import Locale from "../locales";
 
 import BotIcon from "../icons/bot.svg";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getClientConfig } from "../config/client";
+import { loadStudents, StudentRecord } from "../utils/students";
 
 export function AuthPage() {
   const navigate = useNavigate();
   const accessStore = useAccessStore();
+  const [students, setStudents] = useState<StudentRecord[]>([]);
+  const [studentLookupFailed, setStudentLookupFailed] = useState(false);
 
-  const goHome = () => navigate(Path.Home);
+  const matchedStudent = useMemo(
+    () =>
+      students.find(
+        (student) =>
+          student.id.trim().toLowerCase() ===
+          accessStore.studentId.trim().toLowerCase(),
+      ),
+    [accessStore.studentId, students],
+  );
+  const canConfirmStudent = !!matchedStudent;
+
   const goChat = () => navigate(Path.Chat);
-  const resetAccessCode = () => {
+
+  const confirmAndEnter = () => {
+    if (!matchedStudent) return;
     accessStore.update((access) => {
-      access.openaiApiKey = "";
-      access.accessCode = "";
+      access.studentId = matchedStudent.id;
+      access.studentName = matchedStudent.name;
+      access.studentConfirmed = true;
     });
-  }; // Reset access code to empty string
+    goChat();
+  };
 
   useEffect(() => {
     if (getClientConfig()?.isApp) {
       navigate(Path.Settings);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    loadStudents()
+      .then(setStudents)
+      .catch(() => setStudentLookupFailed(true));
   }, []);
 
   return (
@@ -50,46 +73,48 @@ export function AuthPage() {
           );
         }}
       />
-{/*      {!accessStore.hideUserApiKey ? (
-        <>
-          <div className={styles["auth-tips"]}>{Locale.Auth.SubTips}</div>
-          <input
-            className={styles["auth-input"]}
-            type="password"
-            placeholder={Locale.Settings.Access.OpenAI.ApiKey.Placeholder}
-            value={accessStore.openaiApiKey}
-            onChange={(e) => {
-              accessStore.update(
-                (access) => (access.openaiApiKey = e.currentTarget.value),
-              );
-            }}
-          />
-          <input
-            className={styles["auth-input"]}
-            type="password"
-            placeholder={Locale.Settings.Access.Google.ApiKey.Placeholder}
-            value={accessStore.googleApiKey} 
-            onChange={(e) => {
-              accessStore.update(
-                (access) => (access.googleApiKey = e.currentTarget.value),
-              );
-            }}
-          />
-        </>
-      ) : null} */}
+
+      <div className={styles["auth-tips"]}>{Locale.Auth.StudentId}</div>
+      <input
+        className={styles["auth-input"]}
+        type="text"
+        placeholder={Locale.Auth.StudentIdInput}
+        value={accessStore.studentId}
+        onChange={(e) => {
+          accessStore.update((access) => {
+            access.studentId = e.currentTarget.value;
+            access.studentName = "";
+            access.studentConfirmed = false;
+          });
+        }}
+      />
+
+      <div className={styles["student-confirm"]}>
+        {studentLookupFailed ? (
+          <span>{Locale.Auth.StudentLoadError}</span>
+        ) : accessStore.studentId.trim().length === 0 ? (
+          <span>{Locale.Auth.StudentIdEmpty}</span>
+        ) : matchedStudent ? (
+          <>
+            <span className={styles["student-confirm-label"]}>
+              {Locale.Auth.StudentConfirmLabel}
+            </span>
+            <strong>{matchedStudent.name}</strong>
+            <span>{matchedStudent.id}</span>
+          </>
+        ) : (
+          <span>{Locale.Auth.StudentNotFound}</span>
+        )}
+      </div>
 
       <div className={styles["auth-actions"]}>
         <IconButton
-          text={Locale.Auth.Confirm}
+          text={
+            matchedStudent ? Locale.Auth.ConfirmAndEnter : Locale.Auth.Confirm
+          }
           type="primary"
-          onClick={goChat}
-        />
-        <IconButton
-          text={Locale.Auth.Later}
-          onClick={() => {
-            resetAccessCode();
-            goHome();
-          }}
+          disabled={!canConfirmStudent}
+          onClick={confirmAndEnter}
         />
       </div>
     </div>

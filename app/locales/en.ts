@@ -9,16 +9,27 @@ const en: LocaleType = {
   WIP: "Coming Soon...",
   Error: {
     Unauthorized: isApp
-      ? "Invalid API Key, please check it in [Settings](/#/settings) page."
-      : "Unauthorized access, please enter access code in [auth](/#/auth) page, or enter your OpenAI API Key.",
+      ? "Unauthorized access, please enter the access code in the [auth](/#/auth) page."
+      : "Unauthorized access, please enter the access code in the [auth](/#/auth) page.",
   },
   Auth: {
     Title: "Need Access Code",
     Tips: "Please enter access code below",
-    SubTips: "Or enter your OpenAI or Google API Key",
+    SubTips: "",
     Input: "access code",
     Confirm: "Confirm",
     Later: "Later",
+    StudentId: "Student ID",
+    StudentIdInput: "Enter your student ID",
+    StudentIdEmpty: "Please enter your student ID.",
+    StudentNotFound: "No matching student was found for this ID.",
+    StudentLoadError: "Could not load the student list.",
+    StudentConfirmLabel: "Please confirm:",
+    ConfirmAndEnter: "Confirm and enter",
+  },
+  Student: {
+    Label: "Student",
+    NotConfirmed: "Not confirmed",
   },
   ChatItem: {
     ChatItemCount: (count: number) => `${count} messages`,
@@ -177,6 +188,17 @@ const en: LocaleType = {
     SendPreviewBubble: {
       Title: "Send Preview Bubble",
       SubTitle: "Preview markdown in bubble",
+    },
+    ModelFixed: {
+      Title: "Model",
+      SubTitle:
+        "The translation-revision model is set by the teacher and cannot be changed by students.",
+    },
+    Logout: {
+      Title: "Log Out",
+      SubTitle:
+        "Clear the current access code and student identity, but keep conversation history.",
+      Action: "Log Out",
     },
     AutoGenerateTitle: {
       Title: "Auto Generate Title",

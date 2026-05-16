@@ -7,6 +7,24 @@ const fr: PartialLocaleType = {
     Unauthorized:
       "Accès non autorisé, veuillez saisir le code d'accès dans la [page](/#/auth) des paramètres.",
   },
+  Auth: {
+    Title: "Code d'accès requis",
+    Tips: "Veuillez saisir le code d'accès ci-dessous",
+    Input: "Code d'accès",
+    Confirm: "Confirmer",
+    Later: "Plus tard",
+    StudentId: "Numéro étudiant",
+    StudentIdInput: "Saisissez votre numéro étudiant",
+    StudentIdEmpty: "Veuillez saisir votre numéro étudiant.",
+    StudentNotFound: "Aucun étudiant ne correspond à ce numéro.",
+    StudentLoadError: "Impossible de charger la liste des étudiants.",
+    StudentConfirmLabel: "Veuillez confirmer :",
+    ConfirmAndEnter: "Confirmer et entrer",
+  },
+  Student: {
+    Label: "Étudiant",
+    NotConfirmed: "Non confirmé",
+  },
   ChatItem: {
     ChatItemCount: (count: number) => `${count} messages en total`,
   },
@@ -134,6 +152,17 @@ const fr: PartialLocaleType = {
     SendPreviewBubble: {
       Title: "Aperçu de l'envoi dans une bulle",
       SubTitle: "Aperçu du Markdown dans une bulle",
+    },
+    ModelFixed: {
+      Title: "Modèle",
+      SubTitle:
+        "Le modèle de révision de traduction est défini par l'enseignant et ne peut pas être modifié par les étudiants.",
+    },
+    Logout: {
+      Title: "Déconnexion",
+      SubTitle:
+        "Effacer le code d'accès et l'identité étudiante actuels, tout en conservant l'historique des conversations.",
+      Action: "Se déconnecter",
     },
     Mask: {
       Splash: {

@@ -90,13 +90,15 @@
 html {
   height: var(--full-height);
 
-  font-family: "Noto Sans", "SF Pro SC", "SF Pro Text", "SF Pro Icons",
-    "PingFang SC", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "SF Pro Display", "SF Pro SC", "SF Pro Icons", "PingFang SC",
+    "Helvetica Neue", "Noto Sans", "Helvetica", "Arial", sans-serif;
 }
 
 body {
   background-color: var(--gray);
   color: var(--black);
+  font-size: 15px;
   margin: 0;
   padding: 0;
   height: var(--full-height);

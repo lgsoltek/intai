@@ -8,7 +8,7 @@ import { getHeaders } from "../client/api";
 import { getClientConfig } from "../config/client";
 import { createPersistStore } from "../utils/store";
 import { ensure } from "../utils/clone";
-import { DEFAULT_CONFIG } from "./config";
+import { DEFAULT_CONFIG, useAppConfig } from "./config";
 
 let fetchState = 0; // 0 not fetch, 1 fetching, 2 done
 
@@ -18,65 +18,18 @@ const DEFAULT_OPENAI_URL = isApp
   ? DEFAULT_API_HOST + "/api/proxy/openai"
   : ApiPath.OpenAI;
 
-const DEFAULT_GOOGLE_URL = isApp
-  ? DEFAULT_API_HOST + "/api/proxy/google"
-  : ApiPath.Google;
-
-const DEFAULT_ANTHROPIC_URL = isApp
-  ? DEFAULT_API_HOST + "/api/proxy/anthropic"
-  : ApiPath.Anthropic;
-
-const DEFAULT_BAIDU_URL = isApp
-  ? DEFAULT_API_HOST + "/api/proxy/baidu"
-  : ApiPath.Baidu;
-
-const DEFAULT_BYTEDANCE_URL = isApp
-  ? DEFAULT_API_HOST + "/api/proxy/bytedance"
-  : ApiPath.ByteDance;
-
-const DEFAULT_ALIBABA_URL = isApp
-  ? DEFAULT_API_HOST + "/api/proxy/alibaba"
-  : ApiPath.Alibaba;
-
-console.log("DEFAULT_ANTHROPIC_URL", DEFAULT_ANTHROPIC_URL);
-
 const DEFAULT_ACCESS_STATE = {
   accessCode: "",
   useCustomConfig: false,
+  studentId: "",
+  studentName: "",
+  studentConfirmed: false,
 
   provider: ServiceProvider.OpenAI,
 
   // openai
   openaiUrl: DEFAULT_OPENAI_URL,
   openaiApiKey: "",
-
-  // azure
-  azureUrl: "",
-  azureApiKey: "",
-  azureApiVersion: "2023-08-01-preview",
-
-  // google ai studio
-  googleUrl: DEFAULT_GOOGLE_URL,
-  googleApiKey: "",
-  googleApiVersion: "v1",
-
-  // anthropic
-  anthropicUrl: DEFAULT_ANTHROPIC_URL,
-  anthropicApiKey: "",
-  anthropicApiVersion: "2023-06-01",
-
-  // baidu
-  baiduUrl: DEFAULT_BAIDU_URL,
-  baiduApiKey: "",
-  baiduSecretKey: "",
-
-  // bytedance
-  bytedanceUrl: DEFAULT_BYTEDANCE_URL,
-  bytedanceApiKey: "",
-
-  // alibaba
-  alibabaUrl: DEFAULT_ALIBABA_URL,
-  alibabaApiKey: "",
 
   // server config
   needCode: true,
@@ -102,42 +55,12 @@ export const useAccessStore = createPersistStore(
       return ensure(get(), ["openaiApiKey"]);
     },
 
-    isValidAzure() {
-      return ensure(get(), ["azureUrl", "azureApiKey", "azureApiVersion"]);
-    },
-
-    isValidGoogle() {
-      return ensure(get(), ["googleApiKey"]);
-    },
-
-    isValidAnthropic() {
-      return ensure(get(), ["anthropicApiKey"]);
-    },
-
-    isValidBaidu() {
-      return ensure(get(), ["baiduApiKey", "baiduSecretKey"]);
-    },
-
-    isValidByteDance() {
-      return ensure(get(), ["bytedanceApiKey"]);
-    },
-
-    isValidAlibaba() {
-      return ensure(get(), ["alibabaApiKey"]);
-    },
-
     isAuthorized() {
       this.fetch();
 
       // has token or has code or disabled access control
       return (
         this.isValidOpenAI() ||
-        this.isValidAzure() ||
-        this.isValidGoogle() ||
-        this.isValidAnthropic() ||
-        this.isValidBaidu() ||
-        this.isValidByteDance() ||
-        this.isValidAlibaba() ||
         !this.enabledAccessControl() ||
         (this.enabledAccessControl() && ensure(get(), ["accessCode"]))
       );
@@ -156,8 +79,12 @@ export const useAccessStore = createPersistStore(
         .then((res) => {
           // Set default model from env request
           let defaultModel = res.defaultModel ?? "";
-          DEFAULT_CONFIG.modelConfig.model =
-            defaultModel !== "" ? defaultModel : "gpt-4.1";
+          if (defaultModel !== "") {
+            DEFAULT_CONFIG.modelConfig.model = defaultModel;
+            useAppConfig.getState().update((config) => {
+              config.modelConfig.model = defaultModel;
+            });
+          }
           return res;
         })
         .then((res: DangerConfig) => {
