@@ -10,6 +10,7 @@ import { List, ListItem, Select, showConfirm } from "./ui-lib";
 import { IconButton } from "./button";
 
 import {
+  ModalConfigValidator,
   SubmitKey,
   Theme,
   useAccessStore,
@@ -22,9 +23,10 @@ import Locale, {
   changeLang,
   getLang,
 } from "../locales";
-import { Path } from "../constant";
+import { Path, ServiceProvider } from "../constant";
 import { ErrorBoundary } from "./error";
 import { useNavigate } from "react-router-dom";
+import { useAllModels } from "../utils/hooks";
 
 function DangerItems() {
   const chatStore = useChatStore();
@@ -97,6 +99,8 @@ export function Settings() {
   const navigate = useNavigate();
   const config = useAppConfig();
   const updateConfig = config.update;
+  const accessStore = useAccessStore();
+  const allModels = useAllModels();
 
   useEffect(() => {
     const keydownEvent = (e: KeyboardEvent) => {
@@ -224,12 +228,44 @@ export function Settings() {
         </List>
 
         <List>
-          <ListItem
-            title={Locale.Settings.ModelFixed.Title}
-            subTitle={Locale.Settings.ModelFixed.SubTitle}
-          >
-            <IconButton icon={<ResetIcon />} text={config.modelConfig.model} />
-          </ListItem>
+          {accessStore.enableModelSelector ? (
+            <ListItem title={Locale.Settings.Model}>
+              <Select
+                value={`${config.modelConfig.model}@${config.modelConfig.providerName}`}
+                onChange={(e) => {
+                  const [model, providerName] =
+                    e.currentTarget.value.split("@");
+                  updateConfig((config) => {
+                    config.modelConfig.model =
+                      ModalConfigValidator.model(model);
+                    config.modelConfig.providerName =
+                      providerName as ServiceProvider;
+                  });
+                }}
+              >
+                {allModels
+                  .filter((v) => v.available)
+                  .map((v, i) => (
+                    <option
+                      value={`${v.name}@${v.provider?.providerName}`}
+                      key={i}
+                    >
+                      {v.displayName}({v.provider?.providerName})
+                    </option>
+                  ))}
+              </Select>
+            </ListItem>
+          ) : (
+            <ListItem
+              title={Locale.Settings.ModelFixed.Title}
+              subTitle={Locale.Settings.ModelFixed.SubTitle}
+            >
+              <IconButton
+                icon={<ResetIcon />}
+                text={config.modelConfig.model}
+              />
+            </ListItem>
+          )}
         </List>
 
         <AccountItems />

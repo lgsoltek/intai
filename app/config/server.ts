@@ -22,6 +22,7 @@ declare global {
       DISABLE_FAST_LINK?: string; // disallow parse settings from url or not
       CUSTOM_MODELS?: string; // to control custom models
       DEFAULT_MODEL?: string; // to control default model in every new chat window
+      ENABLE_MODEL_SELECTOR?: string; // allow users to choose from available models
 
       // google tag manager
       GTM_ID?: string;
@@ -103,6 +104,7 @@ export const getServerSideConfig = () => {
     disableFastLink: !!process.env.DISABLE_FAST_LINK,
     customModels,
     defaultModel,
+    enableModelSelector: !!process.env.ENABLE_MODEL_SELECTOR,
     allowedWebDevEndpoints,
   };
 };

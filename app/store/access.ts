@@ -39,6 +39,7 @@ const DEFAULT_ACCESS_STATE = {
   disableFastLink: false,
   customModels: "",
   defaultModel: "",
+  enableModelSelector: false,
 };
 
 export const useAccessStore = createPersistStore(
