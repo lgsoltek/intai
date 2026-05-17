@@ -14,10 +14,7 @@ export async function requestOpenai(req: NextRequest) {
   authValue = req.headers.get("Authorization") ?? "";
   authHeaderName = "Authorization";
 
-  let path = `${req.nextUrl.pathname}${req.nextUrl.search}`.replaceAll(
-    "/api/openai/",
-    "",
-  );
+  let path = `${req.nextUrl.pathname}`.replaceAll("/api/openai/", "");
 
   let baseUrl = serverConfig.baseUrl || OPENAI_BASE_URL;
 

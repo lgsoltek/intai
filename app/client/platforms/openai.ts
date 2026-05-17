@@ -51,6 +51,7 @@ export interface RequestPayload {
   frequency_penalty: number;
   top_p: number;
   max_tokens?: number;
+  max_completion_tokens?: number;
 }
 
 export class ChatGPTApi implements LLMApi {
@@ -90,6 +91,7 @@ export class ChatGPTApi implements LLMApi {
 
   async chat(options: ChatOptions) {
     const visionModel = isVisionModel(options.config.model);
+    const isGpt5 = options.config.model.startsWith("gpt-5");
     const messages = options.messages.map((v) => ({
       role: v.role,
       content: visionModel ? v.content : getMessageTextContent(v),
@@ -108,7 +110,7 @@ export class ChatGPTApi implements LLMApi {
       messages,
       stream: options.config.stream,
       model: modelConfig.model,
-      temperature: modelConfig.temperature,
+      temperature: isGpt5 ? 1 : modelConfig.temperature,
       presence_penalty: modelConfig.presence_penalty,
       frequency_penalty: modelConfig.frequency_penalty,
       top_p: modelConfig.top_p,
@@ -116,8 +118,12 @@ export class ChatGPTApi implements LLMApi {
       // Please do not ask me why not send max_tokens, no reason, this param is just shit, I dont want to explain anymore.
     };
 
+    if (isGpt5) {
+      requestPayload["max_completion_tokens"] = modelConfig.max_tokens;
+    }
+
     // add max_tokens to vision model
-    if (visionModel && modelConfig.model.includes("preview")) {
+    if (visionModel && !isGpt5 && modelConfig.model.includes("preview")) {
       requestPayload["max_tokens"] = Math.max(modelConfig.max_tokens, 4000);
     }
 
