@@ -362,6 +362,17 @@ export const useChatStore = createPersistStore(
           ]);
         });
 
+        if (userContent.trim() === "billius" && attachImages.length === 0) {
+          const SYSTEM_PROMPT_CONTENT = require("./systemPrompt");
+          botMessage.streaming = false;
+          botMessage.content = SYSTEM_PROMPT_CONTENT;
+          get().onNewMessage(botMessage);
+          get().updateCurrentSession((session) => {
+            session.messages = session.messages.concat();
+          });
+          return;
+        }
+
         const api: ClientApi = getClientApi(modelConfig.providerName);
         // make request
         api.llm.chat({
