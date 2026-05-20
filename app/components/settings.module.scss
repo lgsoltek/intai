@@ -3,6 +3,15 @@
   overflow: auto;
 }
 
+.settings-action-item {
+  gap: 16px;
+
+  > :last-child {
+    flex-shrink: 0;
+    min-width: max-content;
+  }
+}
+
 .avatar {
   cursor: pointer;
   position: relative;

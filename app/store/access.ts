@@ -5,6 +5,7 @@ import {
   StoreKey,
 } from "../constant";
 import { getHeaders } from "../client/api";
+import type { LLMModel } from "../client/api";
 import { getClientConfig } from "../config/client";
 import { createPersistStore } from "../utils/store";
 import { ensure } from "../utils/clone";
@@ -40,6 +41,10 @@ const DEFAULT_ACCESS_STATE = {
   customModels: "",
   defaultModel: "",
   enableModelSelector: false,
+  providerModels: [] as LLMModel[],
+  summaryProvider: "",
+  summaryModel: "",
+  summaryModels: "",
 };
 
 export const useAccessStore = createPersistStore(
@@ -86,11 +91,19 @@ export const useAccessStore = createPersistStore(
               config.modelConfig.model = defaultModel;
             });
           }
+          if (res.providerModels?.length > 0) {
+            useAppConfig.getState().mergeModels(res.providerModels);
+          }
           return res;
         })
         .then((res: DangerConfig) => {
           console.log("[Config] got config from server", res);
-          set(() => ({ ...res }));
+          set(() => ({
+            ...res,
+            summaryProvider: res.summaryProvider ?? "",
+            summaryModel: res.summaryModel ?? "",
+            summaryModels: res.summaryModels ?? "",
+          }));
         })
         .catch(() => {
           console.error("[Config] failed to fetch config");

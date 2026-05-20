@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import styles from "./settings.module.scss";
 
@@ -28,6 +28,90 @@ import { ErrorBoundary } from "./error";
 import { useNavigate } from "react-router-dom";
 import { useAllModels } from "../utils/hooks";
 
+type ModelCatalogProvider = {
+  providerId: string;
+  providerName: string;
+  error?: string;
+  models: string[];
+};
+
+function ModelCatalogItems() {
+  const [enabled, setEnabled] = useState(false);
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [providers, setProviders] = useState<ModelCatalogProvider[]>([]);
+
+  async function loadCatalog() {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/model-catalog", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ password }),
+      });
+      const json = await response.json();
+      if (!response.ok || json.error) {
+        throw new Error(json.message || "Failed to load model catalog.");
+      }
+      setProviders(json.providers ?? []);
+    } catch (e) {
+      setProviders([]);
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <List>
+      <ListItem
+        title="Full Provider Model Catalog"
+        subTitle="Password-protected live model list from configured providers."
+      >
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => setEnabled(e.currentTarget.checked)}
+        />
+      </ListItem>
+      {enabled && (
+        <>
+          <ListItem title="Catalog Password">
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.currentTarget.value)}
+            />
+          </ListItem>
+          <ListItem title="Load Catalog" subTitle={error}>
+            <IconButton
+              text={loading ? "Loading..." : "Load"}
+              onClick={loadCatalog}
+              disabled={loading || password.length === 0}
+            />
+          </ListItem>
+          {providers.map((provider) => (
+            <ListItem
+              key={provider.providerId}
+              title={`${provider.providerName} (${provider.providerId})`}
+              subTitle={
+                provider.error ||
+                `${provider.models.length} models: ${provider.models.join(
+                  ", ",
+                )}`
+              }
+            />
+          ))}
+        </>
+      )}
+    </List>
+  );
+}
+
 function DangerItems() {
   const chatStore = useChatStore();
   const appConfig = useAppConfig();
@@ -35,6 +119,7 @@ function DangerItems() {
   return (
     <List>
       <ListItem
+        className={styles["settings-action-item"]}
         title={Locale.Settings.Danger.Reset.Title}
         subTitle={Locale.Settings.Danger.Reset.SubTitle}
       >
@@ -49,6 +134,7 @@ function DangerItems() {
         />
       </ListItem>
       <ListItem
+        className={styles["settings-action-item"]}
         title={Locale.Settings.Danger.Clear.Title}
         subTitle={Locale.Settings.Danger.Clear.SubTitle}
       >
@@ -73,6 +159,7 @@ function AccountItems() {
   return (
     <List>
       <ListItem
+        className={styles["settings-action-item"]}
         title={Locale.Settings.Logout.Title}
         subTitle={Locale.Settings.Logout.SubTitle}
       >
@@ -101,6 +188,31 @@ export function Settings() {
   const updateConfig = config.update;
   const accessStore = useAccessStore();
   const allModels = useAllModels();
+  const availableModels = useMemo(
+    () => allModels.filter((model) => model.available),
+    [allModels],
+  );
+  const providers = useMemo(() => {
+    const providerMap = new Map<string, { id: string; providerName: string }>();
+    availableModels.forEach((model) => {
+      const provider = model.provider;
+      if (!provider) return;
+      providerMap.set(provider.id, {
+        id: provider.id,
+        providerName: provider.providerName,
+      });
+    });
+    return Array.from(providerMap.values());
+  }, [availableModels]);
+  const selectedProviderId =
+    config.modelConfig.providerId || providers[0]?.id || "openai";
+  const providerModels = useMemo(
+    () =>
+      availableModels.filter(
+        (model) => model.provider?.id === selectedProviderId,
+      ),
+    [availableModels, selectedProviderId],
+  );
 
   useEffect(() => {
     const keydownEvent = (e: KeyboardEvent) => {
@@ -168,7 +280,7 @@ export function Settings() {
                 );
               }}
             >
-              {Object.values(Theme).map((v) => (
+              {[Theme.Light, Theme.Dark].map((v) => (
                 <option value={v} key={v}>
                   {v}
                 </option>
@@ -229,32 +341,63 @@ export function Settings() {
 
         <List>
           {accessStore.enableModelSelector ? (
-            <ListItem title={Locale.Settings.Model}>
-              <Select
-                value={`${config.modelConfig.model}@${config.modelConfig.providerName}`}
-                onChange={(e) => {
-                  const [model, providerName] =
-                    e.currentTarget.value.split("@");
-                  updateConfig((config) => {
-                    config.modelConfig.model =
-                      ModalConfigValidator.model(model);
-                    config.modelConfig.providerName =
-                      providerName as ServiceProvider;
-                  });
-                }}
-              >
-                {allModels
-                  .filter((v) => v.available)
-                  .map((v, i) => (
-                    <option
-                      value={`${v.name}@${v.provider?.providerName}`}
-                      key={i}
-                    >
-                      {v.displayName}({v.provider?.providerName})
+            <>
+              <ListItem title="Provider">
+                <Select
+                  value={selectedProviderId}
+                  onChange={(e) => {
+                    const providerId = e.currentTarget.value;
+                    const nextModel = availableModels.find(
+                      (model) => model.provider?.id === providerId,
+                    );
+                    const provider = nextModel?.provider;
+                    if (!provider) return;
+                    updateConfig((config) => {
+                      config.modelConfig.providerId =
+                        ModalConfigValidator.providerId(providerId);
+                      config.modelConfig.providerName =
+                        provider.providerName as ServiceProvider;
+                      config.modelConfig.model = ModalConfigValidator.model(
+                        nextModel.name,
+                      );
+                    });
+                  }}
+                >
+                  {providers.map((provider) => (
+                    <option value={provider.id} key={provider.id}>
+                      {provider.providerName}
                     </option>
                   ))}
-              </Select>
-            </ListItem>
+                </Select>
+              </ListItem>
+              <ListItem title={Locale.Settings.Model}>
+                <Select
+                  value={config.modelConfig.model}
+                  onChange={(e) => {
+                    const model = e.currentTarget.value;
+                    const selectedModel = providerModels.find(
+                      (item) => item.name === model,
+                    );
+                    const provider = selectedModel?.provider;
+                    if (!provider) return;
+                    updateConfig((config) => {
+                      config.modelConfig.model =
+                        ModalConfigValidator.model(model);
+                      config.modelConfig.providerId =
+                        ModalConfigValidator.providerId(selectedProviderId);
+                      config.modelConfig.providerName =
+                        provider.providerName as ServiceProvider;
+                    });
+                  }}
+                >
+                  {providerModels.map((model) => (
+                    <option value={model.name} key={model.name}>
+                      {model.displayName || model.name}
+                    </option>
+                  ))}
+                </Select>
+              </ListItem>
+            </>
           ) : (
             <ListItem
               title={Locale.Settings.ModelFixed.Title}
@@ -267,6 +410,8 @@ export function Settings() {
             </ListItem>
           )}
         </List>
+
+        <ModelCatalogItems />
 
         <AccountItems />
 

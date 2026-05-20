@@ -88,22 +88,89 @@ function createEmptySession(): ChatSession {
   };
 }
 
-function getSummarizeModel(currentModel: string) {
-  // if it is using gpt-* models, force to use 3.5 to summarize
-  if (currentModel.startsWith("gpt")) {
-    const configStore = useAppConfig.getState();
-    const accessStore = useAccessStore.getState();
-    const allModel = collectModelsWithDefaultModel(
-      configStore.models,
-      [configStore.customModels, accessStore.customModels].join(","),
-      accessStore.defaultModel,
+function getSummarizeModel(modelConfig: ModelConfig) {
+  const accessStore = useAccessStore.getState();
+  const configStore = useAppConfig.getState();
+  const configuredSummaryProvider = accessStore.summaryProvider;
+  const configuredSummaryModel = accessStore.summaryModel;
+  const providerSummaryModels = (accessStore.summaryModels ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => {
+      const separatorIndex = item.indexOf(":");
+      if (separatorIndex < 0) return undefined;
+      return {
+        providerId: item.slice(0, separatorIndex),
+        model: item.slice(separatorIndex + 1),
+      };
+    })
+    .filter(Boolean) as { providerId: string; model: string }[];
+  const allModel = collectModelsWithDefaultModel(
+    configStore.models,
+    [configStore.customModels, accessStore.customModels].join(","),
+    accessStore.defaultModel,
+  );
+
+  const providerSummaryModel = providerSummaryModels.find(
+    (item) => item.providerId === modelConfig.providerId,
+  );
+  if (providerSummaryModel) {
+    const summaryModel = allModel.find(
+      (m) =>
+        m.name === providerSummaryModel.model &&
+        m.provider?.id === providerSummaryModel.providerId &&
+        m.available,
     );
-    const summarizeModel = allModel.find(
-      (m) => m.name === SUMMARIZE_MODEL && m.available,
-    );
-    return summarizeModel?.name ?? currentModel;
+    if (summaryModel) {
+      return {
+        model: summaryModel.name,
+        providerId: summaryModel.provider?.id,
+        providerName: summaryModel.provider?.providerName,
+      };
+    }
   }
-  return currentModel;
+
+  if (configuredSummaryModel) {
+    const summaryModel = allModel.find(
+      (m) =>
+        m.name === configuredSummaryModel &&
+        (!configuredSummaryProvider ||
+          m.provider?.id === configuredSummaryProvider) &&
+        m.available,
+    );
+    if (summaryModel) {
+      return {
+        model: summaryModel.name,
+        providerId: summaryModel.provider?.id,
+        providerName: summaryModel.provider?.providerName,
+      };
+    }
+  }
+
+  // if it is using gpt-* models, force to use 3.5 to summarize
+  if (modelConfig.model.startsWith("gpt")) {
+    const summarizeModel = allModel.find(
+      (m) =>
+        m.name === SUMMARIZE_MODEL &&
+        (!modelConfig.providerId ||
+          m.provider?.id === modelConfig.providerId) &&
+        m.available,
+    );
+    if (summarizeModel) {
+      return {
+        model: summarizeModel.name,
+        providerId: summarizeModel.provider?.id,
+        providerName: summarizeModel.provider?.providerName,
+      };
+    }
+  }
+
+  return {
+    model: modelConfig.model,
+    providerId: modelConfig.providerId,
+    providerName: modelConfig.providerName,
+  };
 }
 
 function countMessages(msgs: ChatMessage[]) {
@@ -453,9 +520,7 @@ export const useChatStore = createPersistStore(
         const contextPrompts = session.mask.context.slice();
 
         // system prompts, to get close to OpenAI Web ChatGPT
-        const shouldInjectSystemPrompts =
-          modelConfig.enableInjectSystemPrompts &&
-          session.mask.modelConfig.model.startsWith("gpt-");
+        const shouldInjectSystemPrompts = modelConfig.enableInjectSystemPrompts;
 
         var systemPrompts: ChatMessage[] = [];
         systemPrompts = shouldInjectSystemPrompts
@@ -571,7 +636,7 @@ export const useChatStore = createPersistStore(
           api.llm.chat({
             messages: topicMessages,
             config: {
-              model: getSummarizeModel(session.mask.modelConfig.model),
+              ...getSummarizeModel(session.mask.modelConfig),
               stream: false,
             },
             onFinish(message) {
@@ -633,7 +698,7 @@ export const useChatStore = createPersistStore(
             config: {
               ...modelcfg,
               stream: true,
-              model: getSummarizeModel(session.mask.modelConfig.model),
+              ...getSummarizeModel(session.mask.modelConfig),
             },
             onUpdate(message) {
               session.memoryPrompt = message;

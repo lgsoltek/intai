@@ -21,7 +21,6 @@ export enum SubmitKey {
 }
 
 export enum Theme {
-  Auto = "auto",
   Dark = "dark",
   Light = "light",
 }
@@ -34,7 +33,7 @@ export const DEFAULT_CONFIG = {
   submitKey: SubmitKey.Enter,
   avatar: "1f603",
   fontSize: 15,
-  theme: Theme.Auto as Theme,
+  theme: Theme.Light as Theme,
   tightBorder: !!config?.isApp,
   sendPreviewBubble: true,
   enableAutoGenerateTitle: true,
@@ -50,6 +49,7 @@ export const DEFAULT_CONFIG = {
 
   modelConfig: {
     model: "gpt-4.1" as ModelType,
+    providerId: "openai",
     providerName: "OpenAI" as ServiceProvider,
     temperature: 0.5,
     top_p: 1,
@@ -84,6 +84,9 @@ export function limitNumber(
 export const ModalConfigValidator = {
   model(x: string) {
     return x as ModelType;
+  },
+  providerId(x?: string) {
+    return x || "openai";
   },
   max_tokens(x: number) {
     return limitNumber(x, 0, 512000, 1024);
@@ -182,6 +185,10 @@ export const useAppConfig = createPersistStore(
 
       if (state.sidebarWidth < MIN_SIDEBAR_WIDTH) {
         state.sidebarWidth = DEFAULT_SIDEBAR_WIDTH;
+      }
+
+      if ((state.theme as string) === "auto") {
+        state.theme = Theme.Light;
       }
 
       return state as any;

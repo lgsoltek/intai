@@ -20,21 +20,19 @@ import ResetIcon from "../icons/reload.svg";
 import BreakIcon from "../icons/break.svg";
 import DeleteIcon from "../icons/clear.svg";
 import ImageIcon from "../icons/image.svg";
+import RobotIcon from "../icons/robot.svg";
 
-import LightIcon from "../icons/light.svg";
-import DarkIcon from "../icons/dark.svg";
-import AutoIcon from "../icons/auto.svg";
 import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
 
 import {
   ChatMessage,
+  ModelType,
   SubmitKey,
   useChatStore,
   BOT_HELLO,
   createMessage,
   useAccessStore,
-  Theme,
   useAppConfig,
   DEFAULT_TOPIC,
 } from "../store";
@@ -60,7 +58,7 @@ import Locale from "../locales";
 import { IconButton } from "./button";
 import styles from "./chat.module.scss";
 
-import { showConfirm, showToast } from "./ui-lib";
+import { Selector, showConfirm, showToast } from "./ui-lib";
 import { useNavigate } from "react-router-dom";
 import {
   CHAT_PAGE_SIZE,
@@ -314,22 +312,14 @@ export function ChatActions(props: {
   const config = useAppConfig();
   const chatStore = useChatStore();
 
-  // switch themes
-  const theme = config.theme;
-  function nextTheme() {
-    const themes = [Theme.Auto, Theme.Light, Theme.Dark];
-    const themeIndex = themes.indexOf(theme);
-    const nextIndex = (themeIndex + 1) % themes.length;
-    const nextTheme = themes[nextIndex];
-    config.update((config) => (config.theme = nextTheme));
-  }
-
   // stop all responses
   const couldStop = ChatControllerPool.hasPending();
   const stopAll = () => ChatControllerPool.stopAll();
 
   // switch model
-  const currentModel = chatStore.currentSession().mask.modelConfig.model;
+  const currentModelConfig = chatStore.currentSession().mask.modelConfig;
+  const currentModel = currentModelConfig.model;
+  const currentProviderId = currentModelConfig.providerId || "openai";
   const allModels = useAllModels();
   const models = useMemo(() => {
     const filteredModels = allModels.filter((m) => m.available);
@@ -345,6 +335,13 @@ export function ChatActions(props: {
       return filteredModels;
     }
   }, [allModels]);
+  const currentModelName = useMemo(() => {
+    const model = models.find(
+      (m) => m.name === currentModel && m.provider?.id === currentProviderId,
+    );
+    return model?.displayName ?? currentModel;
+  }, [models, currentModel, currentProviderId]);
+  const [showModelSelector, setShowModelSelector] = useState(false);
   const [showUploadImage, setShowUploadImage] = useState(false);
 
   useEffect(() => {
@@ -357,18 +354,22 @@ export function ChatActions(props: {
 
     // if current model is not available
     // switch to first available model
-    const isUnavaliableModel = !models.some((m) => m.name === currentModel);
+    const isUnavaliableModel = !models.some(
+      (m) => m.name === currentModel && m.provider?.id === currentProviderId,
+    );
     if (isUnavaliableModel && models.length > 0) {
       // show next model to default model if exist
       let nextModel = models.find((model) => model.isDefault) || models[0];
       chatStore.updateCurrentSession((session) => {
         session.mask.modelConfig.model = nextModel.name;
+        session.mask.modelConfig.providerId =
+          nextModel?.provider?.id || "openai";
         session.mask.modelConfig.providerName = nextModel?.provider
           ?.providerName as ServiceProvider;
       });
       showToast(nextModel.name);
     }
-  }, [chatStore, currentModel, models]);
+  }, [chatStore, currentModel, currentProviderId, models]);
 
   return (
     <div className={styles["chat-input-actions"]}>
@@ -394,20 +395,41 @@ export function ChatActions(props: {
         />
       )}
       <ChatAction
-        onClick={nextTheme}
-        text={Locale.Chat.InputActions.Theme[theme]}
-        icon={
-          <>
-            {theme === Theme.Auto ? (
-              <AutoIcon />
-            ) : theme === Theme.Light ? (
-              <LightIcon />
-            ) : theme === Theme.Dark ? (
-              <DarkIcon />
-            ) : null}
-          </>
-        }
+        onClick={() => setShowModelSelector(true)}
+        text={`${currentModelName} (${currentProviderId})`}
+        icon={<RobotIcon />}
       />
+
+      {showModelSelector && (
+        <Selector
+          defaultSelectedValue={`${currentProviderId}@${currentModel}`}
+          items={models.map((m) => ({
+            title: `${m.displayName || m.name}${
+              m.provider?.providerName ? ` (${m.provider.providerName})` : ""
+            }`,
+            value: `${m.provider?.id || "openai"}@${m.name}`,
+          }))}
+          onClose={() => setShowModelSelector(false)}
+          onSelection={(selection) => {
+            if (selection.length === 0) return;
+            const [providerId, model] = selection[0].split("@");
+            const selectedModel = models.find(
+              (m) => m.name === model && m.provider?.id === providerId,
+            );
+            chatStore.updateCurrentSession((session) => {
+              session.mask.modelConfig.model = model as ModelType;
+              session.mask.modelConfig.providerId = providerId;
+              session.mask.modelConfig.providerName = selectedModel?.provider
+                ?.providerName as ServiceProvider;
+              session.mask.syncGlobalConfig = false;
+            });
+            showToast(
+              `${selectedModel?.displayName || model} (${selectedModel?.provider
+                ?.providerName})`,
+            );
+          }}
+        />
+      )}
 
       <ChatAction
         text={Locale.Chat.InputActions.Clear}

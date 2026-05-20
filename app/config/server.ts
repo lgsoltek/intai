@@ -23,6 +23,11 @@ declare global {
       CUSTOM_MODELS?: string; // to control custom models
       DEFAULT_MODEL?: string; // to control default model in every new chat window
       ENABLE_MODEL_SELECTOR?: string; // allow users to choose from available models
+      PROVIDERS?: string; // comma-separated provider ids
+      SUMMARY_PROVIDER?: string; // optional provider id for title/history summary
+      SUMMARY_MODEL?: string; // optional model for title/history summary
+      SUMMARY_MODELS?: string; // optional provider:model pairs for title/history summary
+      MODEL_CATALOG_PASSWORD?: string; // optional password for live provider model catalog
 
       // google tag manager
       GTM_ID?: string;
@@ -61,6 +66,84 @@ function getApiKey(keys?: string) {
   return apiKey;
 }
 
+export type ServerProviderModel = {
+  model: string;
+  displayName: string;
+};
+
+export type ServerProviderConfig = {
+  id: string;
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+  models: ServerProviderModel[];
+};
+
+function envKey(providerId: string, name: string) {
+  return `PROVIDER_${providerId
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "_")}_${name}`;
+}
+
+function parseProviderModels(models = ""): ServerProviderModel[] {
+  return models
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) => value && value !== "-all")
+    .filter((value) => !value.startsWith("-"))
+    .map((value) => {
+      const normalized = value.startsWith("+") ? value.slice(1) : value;
+      const [model, displayName] = normalized.split("=");
+      return {
+        model,
+        displayName: displayName || model,
+      };
+    });
+}
+
+function getProviderConfigs(): ServerProviderConfig[] {
+  const providerIds = (process.env.PROVIDERS ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (providerIds.length === 0) {
+    return [];
+  }
+
+  return providerIds
+    .map((id) => {
+      const name = process.env[envKey(id, "NAME")] || id;
+      const baseUrl = process.env[envKey(id, "BASE_URL")] || "";
+      const apiKeys = process.env[envKey(id, "API_KEY")] || "";
+      const modelConfig = process.env[envKey(id, "MODELS")] || "";
+
+      return {
+        id,
+        name,
+        baseUrl,
+        apiKey: getApiKey(apiKeys),
+        models: parseProviderModels(modelConfig),
+      };
+    })
+    .filter((provider) => provider.baseUrl && provider.apiKey);
+}
+
+function getSafeProviderModels(providers: ServerProviderConfig[]) {
+  return providers.flatMap((provider) =>
+    provider.models.map((model) => ({
+      name: model.model,
+      displayName: model.displayName,
+      available: true,
+      provider: {
+        id: provider.id,
+        providerName: provider.name,
+        providerType: "openai",
+      },
+    })),
+  );
+}
+
 export const getServerSideConfig = () => {
   if (typeof process === "undefined") {
     throw Error(
@@ -83,6 +166,7 @@ export const getServerSideConfig = () => {
   const allowedWebDevEndpoints = (
     process.env.WHITE_WEBDEV_ENDPOINTS ?? ""
   ).split(",");
+  const providers = getProviderConfigs();
 
   return {
     baseUrl: process.env.BASE_URL,
@@ -106,5 +190,11 @@ export const getServerSideConfig = () => {
     defaultModel,
     enableModelSelector: !!process.env.ENABLE_MODEL_SELECTOR,
     allowedWebDevEndpoints,
+    providers,
+    providerModels: getSafeProviderModels(providers),
+    summaryProvider: process.env.SUMMARY_PROVIDER,
+    summaryModel: process.env.SUMMARY_MODEL,
+    summaryModels: process.env.SUMMARY_MODELS,
+    modelCatalogPassword: process.env.MODEL_CATALOG_PASSWORD,
   };
 };

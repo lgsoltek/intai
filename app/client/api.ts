@@ -23,6 +23,7 @@ export interface RequestMessage {
 
 export interface LLMConfig {
   model: string;
+  providerId?: string;
   providerName?: string;
   temperature?: number;
   top_p?: number;

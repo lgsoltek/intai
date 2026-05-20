@@ -11,7 +11,9 @@ export function ModelConfigList(props: {
   updateConfig: (updater: (config: ModelConfig) => void) => void;
 }) {
   const allModels = useAllModels();
-  const value = `${props.modelConfig.model}@${props.modelConfig?.providerName}`;
+  const value = `${props.modelConfig.providerId || "openai"}@${
+    props.modelConfig.model
+  }`;
 
   return (
     <>
@@ -19,17 +21,22 @@ export function ModelConfigList(props: {
         <Select
           value={value}
           onChange={(e) => {
-            const [model, providerName] = e.currentTarget.value.split("@");
+            const [providerId, model] = e.currentTarget.value.split("@");
+            const selectedModel = allModels.find(
+              (item) => item.provider?.id === providerId && item.name === model,
+            );
             props.updateConfig((config) => {
               config.model = ModalConfigValidator.model(model);
-              config.providerName = providerName as ServiceProvider;
+              config.providerId = ModalConfigValidator.providerId(providerId);
+              config.providerName = selectedModel?.provider
+                ?.providerName as ServiceProvider;
             });
           }}
         >
           {allModels
             .filter((v) => v.available)
             .map((v, i) => (
-              <option value={`${v.name}@${v.provider?.providerName}`} key={i}>
+              <option value={`${v.provider?.id}@${v.name}`} key={i}>
                 {v.displayName}({v.provider?.providerName})
               </option>
             ))}

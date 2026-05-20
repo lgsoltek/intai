@@ -46,6 +46,7 @@ export interface RequestPayload {
   }[];
   stream?: boolean;
   model: string;
+  providerId?: string;
   temperature: number;
   presence_penalty: number;
   frequency_penalty: number;
@@ -102,6 +103,7 @@ export class ChatGPTApi implements LLMApi {
       ...useChatStore.getState().currentSession().mask.modelConfig,
       ...{
         model: options.config.model,
+        providerId: options.config.providerId,
         providerName: options.config.providerName,
       },
     };
@@ -110,6 +112,7 @@ export class ChatGPTApi implements LLMApi {
       messages,
       stream: options.config.stream,
       model: modelConfig.model,
+      providerId: modelConfig.providerId,
       temperature: isGpt5 ? 1 : modelConfig.temperature,
       presence_penalty: modelConfig.presence_penalty,
       frequency_penalty: modelConfig.frequency_penalty,

@@ -6,24 +6,91 @@ import { cloudflareAIGatewayUrl } from "../utils/cloudflare";
 
 const serverConfig = getServerSideConfig();
 
+function normalizeBaseUrl(baseUrl: string) {
+  let normalized = baseUrl;
+
+  if (!normalized.startsWith("http")) {
+    normalized = `https://${normalized}`;
+  }
+
+  if (normalized.endsWith("/")) {
+    normalized = normalized.slice(0, -1);
+  }
+
+  return normalized;
+}
+
+function buildFetchUrl(baseUrl: string, path: string) {
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
+  const normalizedPath =
+    normalizedBaseUrl.endsWith("/v1") && path.startsWith("v1/")
+      ? path.slice(3)
+      : path;
+
+  return cloudflareAIGatewayUrl(`${normalizedBaseUrl}/${normalizedPath}`);
+}
+
 export async function requestOpenai(req: NextRequest) {
   const controller = new AbortController();
 
-  var authValue,
-    authHeaderName = "";
-  authValue = req.headers.get("Authorization") ?? "";
-  authHeaderName = "Authorization";
+  let authValue = req.headers.get("Authorization") ?? "";
 
   let path = `${req.nextUrl.pathname}`.replaceAll("/api/openai/", "");
 
   let baseUrl = serverConfig.baseUrl || OPENAI_BASE_URL;
+  let requestBody: BodyInit | null | undefined = req.body;
 
-  if (!baseUrl.startsWith("http")) {
-    baseUrl = `https://${baseUrl}`;
-  }
+  if (serverConfig.providers.length > 0 && req.body) {
+    try {
+      const clonedBody = await req.text();
+      const jsonBody = JSON.parse(clonedBody) as {
+        model?: string;
+        providerId?: string;
+      };
 
-  if (baseUrl.endsWith("/")) {
-    baseUrl = baseUrl.slice(0, -1);
+      const provider =
+        serverConfig.providers.find(
+          (item) => item.id === jsonBody.providerId,
+        ) ??
+        serverConfig.providers.find((item) =>
+          item.models.some((model) => model.model === jsonBody.model),
+        );
+
+      if (!provider) {
+        return NextResponse.json(
+          {
+            error: true,
+            message: `No provider is configured for ${jsonBody.model}`,
+          },
+          {
+            status: 403,
+          },
+        );
+      }
+
+      const allowedModel = provider.models.some(
+        (model) => model.model === jsonBody.model,
+      );
+
+      if (!allowedModel) {
+        return NextResponse.json(
+          {
+            error: true,
+            message: `${jsonBody.model} is not allowed for ${provider.id}`,
+          },
+          {
+            status: 403,
+          },
+        );
+      }
+
+      baseUrl = provider.baseUrl;
+      authValue = `Bearer ${provider.apiKey}`;
+      delete jsonBody.providerId;
+      requestBody = JSON.stringify(jsonBody);
+    } catch (e) {
+      console.error("[OpenAI] provider routing", e);
+    }
   }
 
   const timeoutId = setTimeout(
@@ -33,18 +100,18 @@ export async function requestOpenai(req: NextRequest) {
     10 * 60 * 1000,
   );
 
-  const fetchUrl = cloudflareAIGatewayUrl(`${baseUrl}/${path}`);
+  const fetchUrl = buildFetchUrl(baseUrl, path);
   const fetchOptions: RequestInit = {
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
-      [authHeaderName]: authValue,
+      Authorization: authValue,
       ...(serverConfig.openaiOrgId && {
         "OpenAI-Organization": serverConfig.openaiOrgId,
       }),
     },
     method: req.method,
-    body: req.body,
+    body: requestBody,
     // to fix #2485: https://stackoverflow.com/questions/55920957/cloudflare-worker-typeerror-one-time-use-body
     redirect: "manual",
     // @ts-ignore
@@ -54,7 +121,11 @@ export async function requestOpenai(req: NextRequest) {
 
   // Teacher-controlled deployments can force one model from DEFAULT_MODEL.
   // This keeps students from bypassing the hidden model selector with local state edits.
-  if ((serverConfig.customModels || serverConfig.defaultModel) && req.body) {
+  if (
+    serverConfig.providers.length === 0 &&
+    (serverConfig.customModels || serverConfig.defaultModel) &&
+    req.body
+  ) {
     try {
       const clonedBody = await req.text();
       const jsonBody = JSON.parse(clonedBody) as { model?: string };
