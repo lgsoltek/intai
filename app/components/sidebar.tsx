@@ -8,10 +8,12 @@ import ChatGptIcon from "../icons/chatgpt.svg";
 import AddIcon from "../icons/add.svg";
 import DeleteIcon from "../icons/delete.svg";
 import DragIcon from "../icons/drag.svg";
+import LightIcon from "../icons/light.svg";
+import DarkIcon from "../icons/dark.svg";
 
 import Locale from "../locales";
 
-import { useAccessStore, useAppConfig, useChatStore } from "../store";
+import { Theme, useAccessStore, useAppConfig, useChatStore } from "../store";
 
 import {
   DEFAULT_SIDEBAR_WIDTH,
@@ -107,6 +109,7 @@ function useDragSideBar() {
 
 export function SideBar(props: { className?: string }) {
   const chatStore = useChatStore();
+  const config = useAppConfig();
 
   // drag side bar
   const { onDragStart, shouldNarrow } = useDragSideBar();
@@ -119,6 +122,15 @@ export function SideBar(props: { className?: string }) {
   );
 
   useHotKey();
+
+  function nextTheme() {
+    const themes = [Theme.Light, Theme.Dark];
+    const themeIndex = themes.indexOf(config.theme);
+    const nextIndex = (themeIndex + 1) % themes.length;
+    config.update((config) => (config.theme = themes[nextIndex]));
+  }
+
+  const themeIcon = config.theme === Theme.Light ? <LightIcon /> : <DarkIcon />;
 
   return (
     <div
@@ -198,6 +210,9 @@ export function SideBar(props: { className?: string }) {
             <Link to={Path.Settings}>
               <IconButton icon={<SettingsIcon />} shadow />
             </Link>
+          </div>
+          <div className={styles["sidebar-action"]}>
+            <IconButton icon={themeIcon} onClick={nextTheme} shadow />
           </div>
         </div>
         <div>

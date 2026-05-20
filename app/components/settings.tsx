@@ -35,6 +35,7 @@ function DangerItems() {
   return (
     <List>
       <ListItem
+        className={styles["settings-action-item"]}
         title={Locale.Settings.Danger.Reset.Title}
         subTitle={Locale.Settings.Danger.Reset.SubTitle}
       >
@@ -49,6 +50,7 @@ function DangerItems() {
         />
       </ListItem>
       <ListItem
+        className={styles["settings-action-item"]}
         title={Locale.Settings.Danger.Clear.Title}
         subTitle={Locale.Settings.Danger.Clear.SubTitle}
       >
@@ -73,6 +75,7 @@ function AccountItems() {
   return (
     <List>
       <ListItem
+        className={styles["settings-action-item"]}
         title={Locale.Settings.Logout.Title}
         subTitle={Locale.Settings.Logout.SubTitle}
       >
@@ -168,7 +171,7 @@ export function Settings() {
                 );
               }}
             >
-              {Object.values(Theme).map((v) => (
+              {[Theme.Light, Theme.Dark].map((v) => (
                 <option value={v} key={v}>
                   {v}
                 </option>
