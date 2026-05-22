@@ -1,18 +1,24 @@
 .icon-button {
-  background-color: var(--white);
-  border-radius: 10px;
+  background-color: var(--surface-strong);
+  border-radius: 999px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px;
+  min-height: 40px;
+  padding: 10px 12px;
 
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition:
+    transform 0.22s ease,
+    background-color 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease;
   overflow: hidden;
   user-select: none;
   outline: none;
-  border: none;
+  border: 1px solid rgba(44, 116, 120, 0.14);
   color: var(--black);
+  box-shadow: 0 8px 20px rgba(22, 40, 44, 0.06);
 
   &[disabled] {
     cursor: not-allowed;
@@ -20,7 +26,8 @@
   }
 
   &.primary {
-    background-color: var(--primary);
+    background:
+      linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 62%, var(--primary)));
     color: white;
 
     path {
@@ -45,7 +52,10 @@
 
   &:hover,
   &:focus {
-    border-color: var(--primary);
+    border-color: color-mix(in srgb, var(--accent) 58%, var(--primary));
+    box-shadow: var(--button-shadow);
+    transform: translateY(-1px);
+    color: var(--black);
   }
 }
 
@@ -58,8 +68,8 @@
 }
 
 .icon-button-icon {
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -72,12 +82,13 @@
 }
 
 .icon-button-text {
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 750;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 
   &:not(:first-child) {
-    margin-left: 5px;
+    margin-left: 7px;
   }
 }

@@ -12,6 +12,7 @@ import MinIcon from "../icons/min.svg";
 
 import Locale from "../locales";
 
+import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
 import React, { HTMLProps, useEffect, useState } from "react";
 import { IconButton } from "./button";
@@ -99,6 +100,7 @@ interface ModalProps {
   children?: any;
   actions?: React.ReactNode[];
   defaultMax?: boolean;
+  hideHeaderActions?: boolean;
   footer?: React.ReactNode;
   onClose?: () => void;
 }
@@ -129,20 +131,22 @@ export function Modal(props: ModalProps) {
       <div className={styles["modal-header"]}>
         <div className={styles["modal-title"]}>{props.title}</div>
 
-        <div className={styles["modal-header-actions"]}>
-          <div
-            className={styles["modal-header-action"]}
-            onClick={() => setMax(!isMax)}
-          >
-            {isMax ? <MinIcon /> : <MaxIcon />}
+        {!props.hideHeaderActions && (
+          <div className={styles["modal-header-actions"]}>
+            <div
+              className={styles["modal-header-action"]}
+              onClick={() => setMax(!isMax)}
+            >
+              {isMax ? <MinIcon /> : <MaxIcon />}
+            </div>
+            <div
+              className={styles["modal-header-action"]}
+              onClick={props.onClose}
+            >
+              <CloseIcon />
+            </div>
           </div>
-          <div
-            className={styles["modal-header-action"]}
-            onClick={props.onClose}
-          >
-            <CloseIcon />
-          </div>
-        </div>
+        )}
       </div>
 
       <div className={styles["modal-content"]}>{props.children}</div>
@@ -336,6 +340,7 @@ export function showConfirm(content: any) {
           ></IconButton>,
         ]}
         onClose={closeModal}
+        hideHeaderActions
       >
         {content}
       </Modal>,
@@ -447,10 +452,18 @@ export function Selector<T>(props: {
   onSelection?: (selection: T[]) => void;
   onClose?: () => void;
   multiple?: boolean;
+  variant?: "center" | "composer-drawer";
 }) {
-  return (
-    <div className={styles["selector"]} onClick={() => props.onClose?.()}>
-      <div className={styles["selector-content"]}>
+  const isDrawer = props.variant === "composer-drawer";
+  const selectorClassName =
+    styles["selector"] + ` ${isDrawer ? styles["selector-drawer"] : ""}`;
+  const selector = (
+    <div className={selectorClassName} onClick={() => props.onClose?.()}>
+      {isDrawer && <div className={styles["selector-dismiss"]} />}
+      <div
+        className={styles["selector-content"]}
+        onClick={(e) => e.stopPropagation()}
+      >
         <List>
           {props.items.map((item, i) => {
             const selected = props.defaultSelectedValue === item.value;
@@ -484,4 +497,6 @@ export function Selector<T>(props: {
       </div>
     </div>
   );
+
+  return createPortal(selector, document.body);
 }

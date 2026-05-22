@@ -1,6 +1,9 @@
 .settings {
-  padding: 20px;
+  padding: 24px;
   overflow: auto;
+  min-height: 100%;
+  box-sizing: border-box;
+  background: var(--content-gradient);
 }
 
 .settings-action-item {
@@ -39,12 +42,14 @@
     width: 100%;
     max-width: 100%;
     margin-bottom: 10px;
-    background-color: var(--gray);
+    background-color: var(--surface-muted);
   }
 
   .user-prompt-list {
     border: var(--border-in-light);
-    border-radius: 10px;
+    border-radius: 16px;
+    background: var(--surface-strong);
+    overflow: hidden;
 
     .user-prompt-item {
       display: flex;

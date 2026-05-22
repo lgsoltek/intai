@@ -11,7 +11,6 @@ import React, {
 
 import SendWhiteIcon from "../icons/send-white.svg";
 import ExportIcon from "../icons/share.svg";
-import ReturnIcon from "../icons/return.svg";
 import MaxIcon from "../icons/max.svg";
 import CopyIcon from "../icons/copy.svg";
 import LoadingIcon from "../icons/three-dots.svg";
@@ -53,7 +52,7 @@ import dynamic from "next/dynamic";
 
 import { ChatControllerPool } from "../client/controller";
 import { Prompt, usePromptStore } from "../store/prompt";
-import Locale from "../locales";
+import Locale, { getLang } from "../locales";
 
 import { IconButton } from "./button";
 import styles from "./chat.module.scss";
@@ -68,8 +67,6 @@ import {
   UNFINISHED_INPUT,
   ServiceProvider,
 } from "../constant";
-import { Avatar } from "./emoji";
-import { MaskAvatar } from "./mask";
 import { ChatCommandPrefix, useChatCommand, useCommand } from "../command";
 import { prettyObject } from "../utils/format";
 import { ExportMessageModal } from "./exporter";
@@ -78,6 +75,14 @@ import { useAllModels } from "../utils/hooks";
 const Markdown = dynamic(async () => (await import("./markdown")).Markdown, {
   loading: () => <LoadingIcon />,
 });
+
+function speakerLabel(isUser: boolean) {
+  if (!isUser) return "LLM";
+  const lang = getLang();
+  if (lang === "fr") return "Moi";
+  if (lang === "cn") return "我";
+  return "Me";
+}
 
 function useSubmitHandler() {
   const config = useAppConfig();
@@ -402,6 +407,7 @@ export function ChatActions(props: {
 
       {showModelSelector && (
         <Selector
+          variant="composer-drawer"
           defaultSelectedValue={`${currentProviderId}@${currentModel}`}
           items={models.map((m) => ({
             title: `${m.displayName || m.name}${
@@ -825,6 +831,12 @@ function _Chat() {
       : -1;
 
   const autoFocus = !isMobileScreen; // wont auto focus on mobile screen
+  const updateFontSize = (delta: number) => {
+    config.update((config) => {
+      const current = config.fontSize ?? 14;
+      config.fontSize = Math.max(12, Math.min(40, current + delta));
+    });
+  };
 
   useCommand({
     fill: setUserInput,
@@ -987,7 +999,12 @@ function _Chat() {
           <div className="window-actions">
             <div className={"window-action-button"}>
               <IconButton
-                icon={<ReturnIcon />}
+                icon={
+                  <span
+                    className={styles["sidebar-toggle-glyph"]}
+                    aria-hidden="true"
+                  />
+                }
                 bordered
                 title={Locale.Chat.Actions.ChatList}
                 onClick={() => navigate(Path.Home)}
@@ -1007,6 +1024,22 @@ function _Chat() {
           </div>
         </div>
         <div className="window-actions">
+          <div className={`window-action-button ${styles["font-size-group"]}`}>
+            <IconButton
+              text="A-"
+              title={Locale.Settings.FontSize.Title}
+              onClick={() => updateFontSize(-1)}
+              className={styles["font-size-button"]}
+              bordered
+            />
+            <IconButton
+              text="A+"
+              title={Locale.Settings.FontSize.Title}
+              onClick={() => updateFontSize(1)}
+              className={styles["font-size-button"]}
+              bordered
+            />
+          </div>
           <div className="window-action-button">
             <IconButton
               icon={<ExportIcon />}
@@ -1066,22 +1099,15 @@ function _Chat() {
                 <div className={styles["chat-message-container"]}>
                   <div className={styles["chat-message-header"]}>
                     <div className={styles["chat-message-avatar"]}>
-                      {isUser ? (
-                        <Avatar avatar={config.avatar} />
-                      ) : (
-                        <>
-                          {["system"].includes(message.role) ? (
-                            <Avatar avatar="2699-fe0f" />
-                          ) : (
-                            <MaskAvatar
-                              avatar={session.mask.avatar}
-                              model={
-                                message.model || session.mask.modelConfig.model
-                              }
-                            />
-                          )}
-                        </>
-                      )}
+                      <span
+                        className={`${styles["speaker-pill"]} ${
+                          isUser
+                            ? styles["speaker-pill-user"]
+                            : styles["speaker-pill-llm"]
+                        }`}
+                      >
+                        {speakerLabel(isUser)}
+                      </span>
                     </div>
 
                     {showActions && (

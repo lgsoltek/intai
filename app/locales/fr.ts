@@ -98,6 +98,7 @@ const fr: PartialLocaleType = {
   Home: {
     NewChat: "Nouvelle discussion",
     DeleteChat: "Confirmer la suppression de la conversation sélectionnée ?",
+    DeleteChatConfirm: "Supprimer ?",
     DeleteToast: "Conversation supprimée",
     Revert: "Revenir en arrière",
   },
