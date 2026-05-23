@@ -80,7 +80,7 @@ const fr: PartialLocaleType = {
     },
   },
   Export: {
-    Title: "Tous les messages",
+    Title: "Exporter tous les messages",
     Copy: "Tout sélectionner",
     Download: "Télécharger",
     MessageFromYou: "Message de votre part",

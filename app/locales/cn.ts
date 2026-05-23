@@ -93,7 +93,7 @@ const cn = {
     IsContext: "预设提示词",
   },
   Export: {
-    Title: "分享聊天记录",
+    Title: "导出聊天记录",
     Copy: "全部复制",
     Download: "下载文件",
     Share: "分享到 ShareGPT",

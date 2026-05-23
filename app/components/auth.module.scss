@@ -7,7 +7,16 @@
   flex-direction: column;
 
   .auth-logo {
-    transform: scale(1.4);
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    svg {
+      width: 48px;
+      height: 48px;
+    }
   }
 
   .auth-title {

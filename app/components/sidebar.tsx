@@ -164,11 +164,9 @@ export function SideBar(props: { className?: string }) {
 
       <div className={styles["sidebar-header-bar"]}>
         <div className={styles["sidebar-sub-title"]}>
-          Adapted by XIE ©2024.
+          Adapted by XIE J.H. ©2024, 2006.
         </div>
-        <div className={styles["sidebar-sub-title"]}>
-          Based on ChatGPT-Next-Web.
-        </div>
+        <div className={styles["sidebar-sub-title"]}>Based on NextChat.</div>
       </div>
 
       <div className={styles["student-card"]}>
