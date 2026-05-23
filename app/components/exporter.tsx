@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { createPortal } from "react-dom";
 
 import Locale from "../locales";
 import { ChatMessage, useAccessStore, useChatStore } from "../store";
@@ -41,7 +42,7 @@ export function ExportMessageModal(props: { onClose: () => void }) {
     [session.messages, topic],
   );
 
-  return (
+  return createPortal(
     <div className="modal-mask">
       <Modal title={Locale.Export.Title} onClose={props.onClose}>
         <div className={styles["preview-actions"]}>
@@ -64,6 +65,7 @@ export function ExportMessageModal(props: { onClose: () => void }) {
           <pre className={styles["export-content"]}>{mdText}</pre>
         </div>
       </Modal>
-    </div>
+    </div>,
+    document.body,
   );
 }

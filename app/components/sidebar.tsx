@@ -3,15 +3,10 @@ import { useEffect, useRef, useMemo } from "react";
 import styles from "./home.module.scss";
 
 import { IconButton } from "./button";
-import SettingsIcon from "../icons/settings.svg";
-import ChatGptIcon from "../icons/chatgpt.svg";
-import AddIcon from "../icons/add.svg";
-import DeleteIcon from "../icons/delete.svg";
+import AssisTranIcon from "../icons/assistran.svg";
 import DragIcon from "../icons/drag.svg";
-import LightIcon from "../icons/light.svg";
-import DarkIcon from "../icons/dark.svg";
 
-import Locale from "../locales";
+import Locale, { changeLang, getLang, Lang } from "../locales";
 
 import { Theme, useAccessStore, useAppConfig, useChatStore } from "../store";
 
@@ -22,10 +17,9 @@ import {
   Path,
 } from "../constant";
 
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { isIOS, useMobileScreen } from "../utils";
 import dynamic from "next/dynamic";
-import { showConfirm, showToast } from "./ui-lib";
 
 const ChatList = dynamic(async () => (await import("./chat-list")).ChatList, {
   loading: () => null,
@@ -114,6 +108,7 @@ export function SideBar(props: { className?: string }) {
   // drag side bar
   const { onDragStart, shouldNarrow } = useDragSideBar();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const accessStore = useAccessStore();
   const isMobileScreen = useMobileScreen();
   const isIOSMobile = useMemo(
@@ -130,7 +125,20 @@ export function SideBar(props: { className?: string }) {
     config.update((config) => (config.theme = themes[nextIndex]));
   }
 
-  const themeIcon = config.theme === Theme.Light ? <LightIcon /> : <DarkIcon />;
+  function nextLang() {
+    const langs: Lang[] = ["cn", "fr", "en"];
+    const index = langs.indexOf(getLang());
+    const nextIndex = (index + 1) % langs.length;
+    changeLang(langs[nextIndex]);
+  }
+
+  const langLabel: Partial<Record<Lang, string>> = {
+    cn: "中",
+    fr: "FR",
+    en: "EN",
+  };
+
+  const themeText = config.theme === Theme.Light ? "☼" : "☽";
 
   return (
     <div
@@ -150,7 +158,7 @@ export function SideBar(props: { className?: string }) {
           Pour améliorer votre traduction.
         </div>
         <div className={styles["sidebar-logo"] + " no-dark"}>
-          <ChatGptIcon />
+          <AssisTranIcon />
         </div>
       </div>
 
@@ -183,6 +191,19 @@ export function SideBar(props: { className?: string }) {
         )}
       </div>
 
+      <div className={styles["sidebar-create"]}>
+        <IconButton
+          text={shouldNarrow ? undefined : Locale.Home.NewChat}
+          onClick={() => {
+            chatStore.newSession();
+            navigate(Path.Chat);
+          }}
+          type="primary"
+          shadow
+          className={styles["new-chat-button"]}
+        />
+      </div>
+
       <div
         className={styles["sidebar-body"]}
         onClick={(e) => {
@@ -196,35 +217,40 @@ export function SideBar(props: { className?: string }) {
 
       <div className={styles["sidebar-tail"]}>
         <div className={styles["sidebar-actions"]}>
-          <div className={styles["sidebar-action"] + " " + styles.mobile}>
-            <IconButton
-              icon={<DeleteIcon />}
-              onClick={async () => {
-                if (await showConfirm(Locale.Home.DeleteChat)) {
-                  chatStore.deleteSession(chatStore.currentSessionIndex);
-                }
-              }}
-            />
-          </div>
           <div className={styles["sidebar-action"]}>
-            <Link to={Path.Settings}>
-              <IconButton icon={<SettingsIcon />} shadow />
+            <Link to={pathname === Path.Settings ? Path.Home : Path.Settings}>
+              <IconButton
+                icon={
+                  <span
+                    className={styles["settings-glyph"]}
+                    aria-hidden="true"
+                  />
+                }
+                shadow
+              />
             </Link>
           </div>
           <div className={styles["sidebar-action"]}>
-            <IconButton icon={themeIcon} onClick={nextTheme} shadow />
+            <IconButton
+              icon={
+                <span className={styles["theme-glyph"]} aria-hidden="true">
+                  {themeText}
+                </span>
+              }
+              onClick={nextTheme}
+              shadow
+              className={styles["theme-cycle-button"]}
+            />
           </div>
-        </div>
-        <div>
-          <IconButton
-            icon={<AddIcon />}
-            text={shouldNarrow ? undefined : Locale.Home.NewChat}
-            onClick={() => {
-              chatStore.newSession();
-              navigate(Path.Chat);
-            }}
-            shadow
-          />
+          <div className={styles["sidebar-action"]}>
+            <IconButton
+              text={langLabel[getLang()] ?? "EN"}
+              onClick={nextLang}
+              shadow
+              title={Locale.Settings.Lang.Name}
+              className={styles["language-cycle-button"]}
+            />
+          </div>
         </div>
       </div>
 

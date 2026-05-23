@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44" role="img" aria-label="AssisTran">
+  <rect width="44" height="44" rx="14" fill="#eef0f8"/>
+  <path d="M12 29.5 19.2 12h5.6L32 29.5h-4.9l-1.3-3.5h-7.7l-1.3 3.5H12Zm7.3-7.3h5.2L22 15.4l-2.7 6.8Z" fill="#6f78b6"/>
+  <path d="M13 33h18" stroke="#c987b5" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M30.5 11.5h1.8v5.2h-1.8zM28.8 13.2H34v1.8h-5.2z" fill="#c987b5"/>
+</svg>

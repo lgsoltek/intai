@@ -5,24 +5,17 @@ import styles from "./settings.module.scss";
 import CloseIcon from "../icons/close.svg";
 import ResetIcon from "../icons/reload.svg";
 
-import { InputRange } from "./input-range";
 import { List, ListItem, Select, showConfirm } from "./ui-lib";
 import { IconButton } from "./button";
 
 import {
   ModalConfigValidator,
   SubmitKey,
-  Theme,
   useAccessStore,
   useAppConfig,
   useChatStore,
 } from "../store";
-import Locale, {
-  AllLangs,
-  ALL_LANG_OPTIONS,
-  changeLang,
-  getLang,
-} from "../locales";
+import Locale from "../locales";
 import { Path, ServiceProvider } from "../constant";
 import { ErrorBoundary } from "./error";
 import { useNavigate } from "react-router-dom";
@@ -160,57 +153,6 @@ export function Settings() {
                 </option>
               ))}
             </Select>
-          </ListItem>
-
-          <ListItem title={Locale.Settings.Theme}>
-            <Select
-              value={config.theme}
-              onChange={(e) => {
-                updateConfig(
-                  (config) => (config.theme = e.target.value as any as Theme),
-                );
-              }}
-            >
-              {[Theme.Light, Theme.Dark].map((v) => (
-                <option value={v} key={v}>
-                  {v}
-                </option>
-              ))}
-            </Select>
-          </ListItem>
-
-          <ListItem title={Locale.Settings.Lang.Name}>
-            <Select
-              value={getLang()}
-              onChange={(e) => {
-                changeLang(e.target.value as any);
-              }}
-            >
-              {AllLangs.map((lang) => (
-                <option value={lang} key={lang}>
-                  {ALL_LANG_OPTIONS[lang]}
-                </option>
-              ))}
-            </Select>
-          </ListItem>
-
-          <ListItem
-            title={Locale.Settings.FontSize.Title}
-            subTitle={Locale.Settings.FontSize.SubTitle}
-          >
-            <InputRange
-              title={`${config.fontSize ?? 14}px`}
-              value={config.fontSize}
-              min="12"
-              max="40"
-              step="1"
-              onChange={(e) =>
-                updateConfig(
-                  (config) =>
-                    (config.fontSize = Number.parseInt(e.currentTarget.value)),
-                )
-              }
-            />
           </ListItem>
 
           <ListItem

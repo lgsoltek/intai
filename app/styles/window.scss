@@ -1,7 +1,10 @@
 .window-header {
-  padding: 14px 20px;
-  border-bottom: rgba(0, 0, 0, 0.1) 1px solid;
+  padding: 16px 22px;
+  border-bottom: var(--border-in-light);
   position: relative;
+  background: var(--header-gradient);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 
   display: flex;
   justify-content: space-between;
@@ -13,8 +16,9 @@
   overflow: hidden;
 
   .window-header-main-title {
-    font-size: 20px;
-    font-weight: bolder;
+    font-size: 21px;
+    font-weight: 800;
+    color: var(--primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -23,7 +27,10 @@
   }
 
   .window-header-sub-title {
-    font-size: 14px;
+    margin-top: 2px;
+    font-size: 14.5px;
+    font-weight: 560;
+    color: var(--text-muted);
   }
 }
 
