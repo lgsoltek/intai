@@ -3,7 +3,19 @@ import { BuildConfig, getBuildConfig } from "./build";
 export function getClientConfig() {
   if (typeof document !== "undefined") {
     // client side
-    return JSON.parse(queryMeta("config")) as BuildConfig;
+    const rawConfig = queryMeta("config");
+
+    if (!rawConfig) {
+      console.warn("[Client Config] missing config meta, using defaults.");
+      return {} as BuildConfig;
+    }
+
+    try {
+      return JSON.parse(rawConfig) as BuildConfig;
+    } catch (e) {
+      console.warn("[Client Config] failed to parse config meta", e);
+      return {} as BuildConfig;
+    }
   }
 
   if (typeof process !== "undefined") {
