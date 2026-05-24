@@ -3,6 +3,24 @@ export interface StudentRecord {
   name: string;
 }
 
+const DEFAULT_STUDENTS_CSV_PATH = "/students.csv";
+const STUDENTS_CSV_BY_BRANCH: Record<string, string> = {
+  main: "/students-main.csv",
+  multiprovider: "/students-multiprovider.csv",
+};
+
+function getStudentsCsvPath() {
+  const configuredPath = process.env.NEXT_PUBLIC_STUDENTS_CSV_PATH?.trim();
+  if (configuredPath) return configuredPath;
+
+  const branchName = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF?.trim();
+  if (branchName && STUDENTS_CSV_BY_BRANCH[branchName]) {
+    return STUDENTS_CSV_BY_BRANCH[branchName];
+  }
+
+  return DEFAULT_STUDENTS_CSV_PATH;
+}
+
 function parseCsvLine(line: string) {
   const values: string[] = [];
   let current = "";
@@ -56,7 +74,7 @@ export function parseStudentsCsv(csv: string): StudentRecord[] {
 }
 
 export async function loadStudents() {
-  const response = await fetch("/students.csv", { cache: "no-store" });
+  const response = await fetch(getStudentsCsvPath(), { cache: "no-store" });
   if (!response.ok) return [];
   return parseStudentsCsv(await response.text());
 }
