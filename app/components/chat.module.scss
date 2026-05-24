@@ -768,11 +768,32 @@
 }
 
 @media only screen and (max-width: 600px) {
+  .chat-input-panel-inner {
+    position: relative;
+  }
+
   .chat-input {
     font-size: 16px;
+    padding-right: 124px;
+    min-height: 84px;
   }
 
   .chat-input-send {
-    bottom: 30px;
+    right: 12px;
+    bottom: auto;
+    top: 50%;
+    width: 104px;
+    min-width: 104px;
+    max-width: 104px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 12px !important;
+    box-sizing: border-box;
+    transform: translateY(-50%);
+
+    &:hover,
+    &:focus {
+      transform: translateY(calc(-50% - 2px));
+    }
   }
 }
