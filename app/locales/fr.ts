@@ -29,7 +29,7 @@ const fr: PartialLocaleType = {
     ChatItemCount: (count: number) => `${count} messages en total`,
   },
   Chat: {
-    SubTitle: (count: number) => `${count} messages échangés avec ChatGPT`,
+    SubTitle: (count: number) => `${count} messages échangés avec l'IA`,
     Actions: {
       ChatList: "Aller à la liste de discussion",
       CompressedHistory: "Mémoire d'historique compressée Prompt",
