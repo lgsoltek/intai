@@ -8,6 +8,10 @@ console.log("[Next] build with chunk: ", !disableChunk);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  env: {
+    NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF:
+      process.env.VERCEL_GIT_COMMIT_REF ?? "",
+  },
   webpack(config) {
     config.module.rules.push({
       test: /\.svg$/,
