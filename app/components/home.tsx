@@ -48,6 +48,13 @@ const Chat = dynamic(async () => (await import("./chat")).Chat, {
   loading: () => <Loading noLogo />,
 });
 
+const TeacherHistory = dynamic(
+  async () => (await import("./teacher-history")).TeacherHistory,
+  {
+    loading: () => <Loading noLogo />,
+  },
+);
+
 export function useSwitchTheme() {
   const config = useAppConfig();
 
@@ -121,16 +128,17 @@ function Screen() {
   const navigate = useNavigate();
   const isHome = location.pathname === Path.Home;
   const isAuth = location.pathname === Path.Auth;
+  const isTeacherHistory = location.pathname === Path.TeacherHistory;
   const isMobileScreen = useMobileScreen();
   const shouldTightBorder =
     getClientConfig()?.isApp || (config.tightBorder && !isMobileScreen);
   const accessStore = useAccessStore();
 
   useEffect(() => {
-    if (!isAuth && !accessStore.studentConfirmed) {
+    if (!isAuth && !isTeacherHistory && !accessStore.studentConfirmed) {
       navigate(Path.Auth);
     }
-  }, [accessStore.studentConfirmed, isAuth, navigate]);
+  }, [accessStore.studentConfirmed, isAuth, isTeacherHistory, navigate]);
 
   useEffect(() => {
     loadAsyncGoogleFont();
@@ -149,6 +157,8 @@ function Screen() {
         <>
           <AuthPage />
         </>
+      ) : isTeacherHistory ? (
+        <TeacherHistory />
       ) : (
         <>
           <SideBar className={isHome ? styles["sidebar-show"] : ""} />

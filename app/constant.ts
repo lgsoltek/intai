@@ -15,6 +15,7 @@ export enum Path {
   Home = "/",
   Chat = "/chat",
   Settings = "/settings",
+  TeacherHistory = "/teacher-history",
   NewChat = "/new-chat",
   Masks = "/masks",
   Auth = "/auth",
@@ -23,6 +24,7 @@ export enum Path {
 export enum ApiPath {
   Cors = "",
   OpenAI = "/api/openai",
+  Conversations = "/api/conversations",
 }
 
 export enum SlotID {

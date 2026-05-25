@@ -13,6 +13,8 @@ declare global {
       OPENAI_ORG_ID?: string; // openai only
 
       VERCEL?: string;
+      VERCEL_ENV?: "production" | "preview" | "development";
+      VERCEL_URL?: string;
       BUILD_MODE?: "standalone" | "export";
       BUILD_APP?: string; // is building desktop app
 
@@ -30,6 +32,9 @@ declare global {
       // custom template for preprocessing user input
       DEFAULT_INPUT_TEMPLATE?: string;
       NEXT_PUBLIC_SYSTEM_PROMPT?: string;
+
+      BLOB_READ_WRITE_TOKEN?: string;
+      TEACHER_HISTORY_CODE?: string;
     }
   }
 }

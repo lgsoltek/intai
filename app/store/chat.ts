@@ -25,6 +25,7 @@ import { nanoid } from "nanoid";
 import { createPersistStore } from "../utils/store";
 import { collectModelsWithDefaultModel } from "../utils/model";
 import { useAccessStore } from "./access";
+import { queueConversationSave } from "../utils/conversation-history";
 
 export type ChatMessage = RequestMessage & {
   date: string;
@@ -170,6 +171,19 @@ export const useChatStore = createPersistStore(
         ..._get(),
         ...methods,
       };
+    }
+
+    function saveCurrentConversation() {
+      const access = useAccessStore.getState();
+      const session = get().currentSession();
+      queueConversationSave(
+        session,
+        {
+          studentId: access.studentId,
+          studentName: access.studentName,
+        },
+        session.mask.modelConfig.providerName,
+      );
     }
 
     const methods = {
@@ -362,7 +376,9 @@ export const useChatStore = createPersistStore(
             savedUserMessage,
             botMessage,
           ]);
+          session.lastUpdate = Date.now();
         });
+        saveCurrentConversation();
 
         if (userContent.trim() === "billius" && attachImages.length === 0) {
           const SYSTEM_PROMPT_CONTENT = require("./systemPrompt");
@@ -372,6 +388,7 @@ export const useChatStore = createPersistStore(
           get().updateCurrentSession((session) => {
             session.messages = session.messages.concat();
           });
+          saveCurrentConversation();
           return;
         }
 
@@ -395,6 +412,7 @@ export const useChatStore = createPersistStore(
               botMessage.content = message;
               get().onNewMessage(botMessage);
             }
+            saveCurrentConversation();
             ChatControllerPool.remove(session.id, botMessage.id);
           },
           onError(error) {
@@ -410,7 +428,9 @@ export const useChatStore = createPersistStore(
             botMessage.isError = !isAborted;
             get().updateCurrentSession((session) => {
               session.messages = session.messages.concat();
+              session.lastUpdate = Date.now();
             });
+            saveCurrentConversation();
             ChatControllerPool.remove(
               session.id,
               botMessage.id ?? messageIndex,
