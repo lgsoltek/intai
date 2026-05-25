@@ -1,10 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ApiPath } from "../constant";
 import Locale from "../locales";
 import MaxIcon from "../icons/max.svg";
+import RefreshIcon from "../icons/reload.svg";
 import { Theme, useAccessStore, useAppConfig } from "../store";
 import { downloadAs } from "../utils";
 import { IconButton } from "./button";
@@ -14,8 +15,13 @@ const Markdown = dynamic(async () => (await import("./markdown")).Markdown);
 
 type ConversationListItem = {
   pathname: string;
+  studentId: string;
+  studentName: string;
+  topic: string;
   updatedAt: string;
 };
+
+type SortOption = "recent" | "oldest" | "studentId" | "studentName";
 
 type ConversationMessage = {
   id: string;
@@ -84,6 +90,8 @@ export function TeacherHistory() {
   const [selectedPathname, setSelectedPathname] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("recent");
   const fontSize = config.fontSize;
   const teacherHistoryProtected = accessStore.teacherHistoryProtected !== false;
 
@@ -107,14 +115,14 @@ export function TeacherHistory() {
 
   async function loadList() {
     setLoading(true);
-    setSelected(undefined);
-    setSelectedPathname("");
     try {
       const response = await fetch(`${ApiPath.Conversations}/teacher/list`, {
         headers,
       });
       if (!response.ok) {
         setItems([]);
+        setSelected(undefined);
+        setSelectedPathname("");
         setMessage(
           teacherHistoryProtected
             ? "The password was not accepted."
@@ -183,6 +191,30 @@ export function TeacherHistory() {
   }, [teacherHistoryProtected]);
 
   const themeText = config.theme === Theme.Light ? "☼" : "☽";
+  const visibleItems = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase();
+    const filtered = items.filter((item) => {
+      if (!query) return true;
+      return [item.studentName, item.studentId, item.topic].some((field) =>
+        field.toLocaleLowerCase().includes(query),
+      );
+    });
+
+    return filtered.sort((a, b) => {
+      if (sortBy === "oldest") {
+        return (
+          new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+        );
+      }
+      if (sortBy === "studentId") {
+        return a.studentId.localeCompare(b.studentId);
+      }
+      if (sortBy === "studentName") {
+        return a.studentName.localeCompare(b.studentName);
+      }
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+  }, [items, search, sortBy]);
 
   return (
     <div className={styles.page}>
@@ -263,24 +295,61 @@ export function TeacherHistory() {
 
       <main className={styles.content}>
         <aside className={styles.list}>
-          <div className={styles.listHeader}>
-            <strong>Saved Conversations</strong>
-            <span>{items.length}</span>
-          </div>
-          {items.map((item) => (
-            <button
-              className={`${styles.listCard} ${
-                selectedPathname === item.pathname ? styles.listCardActive : ""
-              }`}
-              key={item.pathname}
-              onClick={() => openConversation(item)}
+          <div className={styles.listToolbar}>
+            <div className={styles.listHeader}>
+              <strong>Saved Conversations</strong>
+              <span>{visibleItems.length}</span>
+              <IconButton
+                icon={<RefreshIcon />}
+                bordered
+                title="Refresh conversations"
+                disabled={loading || (teacherHistoryProtected && !teacherCode)}
+                onClick={loadList}
+                className={styles.refreshButton}
+              />
+            </div>
+            <input
+              className={styles.searchInput}
+              value={search}
+              onChange={(event) => setSearch(event.currentTarget.value)}
+              placeholder="Search name, ID or topic"
+              type="search"
+            />
+            <select
+              className={styles.sortSelect}
+              value={sortBy}
+              onChange={(event) =>
+                setSortBy(event.currentTarget.value as SortOption)
+              }
+              aria-label="Sort conversations"
             >
-              <strong className={styles.studentPill}>
-                {item.pathname.split("/").at(-2)}
-              </strong>
-              <span>{new Date(item.updatedAt).toLocaleString()}</span>
-            </button>
-          ))}
+              <option value="recent">Most recent first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="studentId">Student ID</option>
+              <option value="studentName">Student name</option>
+            </select>
+          </div>
+          <div className={styles.listCards}>
+            {visibleItems.map((item) => (
+              <button
+                className={`${styles.listCard} ${
+                  selectedPathname === item.pathname
+                    ? styles.listCardActive
+                    : ""
+                }`}
+                key={item.pathname}
+                onClick={() => openConversation(item)}
+              >
+                <strong className={styles.studentName}>
+                  {item.studentName || "Unnamed student"}
+                </strong>
+                <span className={styles.studentPill}>{item.studentId}</span>
+                <span className={styles.cardDate}>
+                  {new Date(item.updatedAt).toLocaleString()}
+                </span>
+              </button>
+            ))}
+          </div>
         </aside>
 
         <article className={styles.transcript}>

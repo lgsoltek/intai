@@ -1,4 +1,4 @@
-import { list } from "@vercel/blob";
+import { get, list } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
 import {
   getConversationPrefix,
@@ -11,16 +11,52 @@ export async function GET(req: NextRequest) {
 
   try {
     const result = await list({ prefix: `${getConversationPrefix()}/` });
-    const conversations = result.blobs
-      .filter((blob) => blob.pathname.endsWith(".json"))
-      .map((blob) => ({
-        pathname: blob.pathname,
-        updatedAt: blob.uploadedAt,
-      }))
-      .sort(
-        (a, b) =>
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-      );
+    const conversations = await Promise.all(
+      result.blobs
+        .filter((blob) => blob.pathname.endsWith(".json"))
+        .map(async (blob) => {
+          const fallbackStudentId = blob.pathname.split("/").at(-2) ?? "";
+          try {
+            const file = await get(blob.pathname, {
+              access: "private",
+              useCache: false,
+            });
+            if (!file || file.statusCode !== 200) {
+              throw new Error("Transcript is not available.");
+            }
+
+            const conversation = JSON.parse(
+              await new Response(file.stream).text(),
+            ) as {
+              studentId?: string;
+              studentName?: string;
+              topic?: string;
+              updatedAt?: string;
+            };
+
+            return {
+              pathname: blob.pathname,
+              studentId: conversation.studentId ?? fallbackStudentId,
+              studentName: conversation.studentName ?? "",
+              topic: conversation.topic ?? "",
+              updatedAt:
+                conversation.updatedAt ?? blob.uploadedAt.toISOString(),
+            };
+          } catch {
+            return {
+              pathname: blob.pathname,
+              studentId: fallbackStudentId,
+              studentName: "",
+              topic: "",
+              updatedAt: blob.uploadedAt.toISOString(),
+            };
+          }
+        }),
+    );
+    conversations.sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    );
 
     return NextResponse.json({ conversations });
   } catch (error) {
