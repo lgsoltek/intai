@@ -20,20 +20,28 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const blob = await get(pathname, { access: "private", useCache: false });
-  if (!blob || blob.statusCode !== 200) {
+  try {
+    const blob = await get(pathname, { access: "private", useCache: false });
+    if (!blob || blob.statusCode !== 200) {
+      return NextResponse.json(
+        { error: true, message: "Conversation not found." },
+        { status: 404 },
+      );
+    }
+
+    const rawConversation = await new Response(blob.stream).text();
+    if (!rawConversation.trim()) {
+      throw new Error("Empty conversation body.");
+    }
+
+    return NextResponse.json(JSON.parse(rawConversation));
+  } catch (error) {
+    console.error("[Conversation History] could not read transcript", error);
     return NextResponse.json(
-      { error: true, message: "Conversation not found." },
-      { status: 404 },
+      { error: true, message: "Could not read that conversation." },
+      { status: 500 },
     );
   }
-
-  return new Response(blob.stream, {
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store",
-    },
-  });
 }
 
 export const runtime = "edge";

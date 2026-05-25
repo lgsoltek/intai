@@ -9,19 +9,27 @@ import {
 export async function GET(req: NextRequest) {
   if (!hasTeacherAccess(req)) return teacherUnauthorized();
 
-  const result = await list({ prefix: `${getConversationPrefix()}/` });
-  const conversations = result.blobs
-    .filter((blob) => blob.pathname.endsWith(".json"))
-    .map((blob) => ({
-      pathname: blob.pathname,
-      updatedAt: blob.uploadedAt,
-    }))
-    .sort(
-      (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    );
+  try {
+    const result = await list({ prefix: `${getConversationPrefix()}/` });
+    const conversations = result.blobs
+      .filter((blob) => blob.pathname.endsWith(".json"))
+      .map((blob) => ({
+        pathname: blob.pathname,
+        updatedAt: blob.uploadedAt,
+      }))
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+      );
 
-  return NextResponse.json({ conversations });
+    return NextResponse.json({ conversations });
+  } catch (error) {
+    console.error("[Conversation History] could not list transcripts", error);
+    return NextResponse.json(
+      { error: true, message: "Could not load saved conversations." },
+      { status: 500 },
+    );
+  }
 }
 
 export const runtime = "edge";

@@ -32,6 +32,29 @@ type Conversation = {
   messages: ConversationMessage[];
 };
 
+async function readJsonResponse<T>(response: Response): Promise<T | null> {
+  const text = await response.text();
+  if (!text.trim()) return null;
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
+function isConversation(value: unknown): value is Conversation {
+  if (!value || typeof value !== "object") return false;
+  const conversation = value as Partial<Conversation>;
+  return (
+    typeof conversation.studentId === "string" &&
+    typeof conversation.studentName === "string" &&
+    typeof conversation.topic === "string" &&
+    typeof conversation.updatedAt === "string" &&
+    Array.isArray(conversation.messages)
+  );
+}
+
 function messageText(message: ConversationMessage) {
   if (typeof message.content === "string") return message.content;
   return message.content
@@ -99,15 +122,23 @@ export function TeacherHistory() {
         );
         return;
       }
-      const data = (await response.json()) as {
+      const data = await readJsonResponse<{
         conversations: ConversationListItem[];
-      };
+      }>(response);
+      if (!data || !Array.isArray(data.conversations)) {
+        setItems([]);
+        setMessage("Could not read saved conversations.");
+        return;
+      }
       setItems(data.conversations);
       setMessage(
         data.conversations.length === 0
           ? "No test conversations have been saved yet."
           : "",
       );
+    } catch {
+      setItems([]);
+      setMessage("Could not load saved conversations.");
     } finally {
       setLoading(false);
     }
@@ -126,8 +157,18 @@ export function TeacherHistory() {
         setMessage("Could not open that conversation.");
         return;
       }
-      setSelected((await response.json()) as Conversation);
+      const conversation = await readJsonResponse<unknown>(response);
+      if (!isConversation(conversation)) {
+        setSelected(undefined);
+        setSelectedPathname("");
+        setMessage("Could not read that conversation.");
+        return;
+      }
+      setSelected(conversation);
       setSelectedPathname(item.pathname);
+      setMessage("");
+    } catch {
+      setMessage("Could not open that conversation.");
     } finally {
       setLoading(false);
     }
