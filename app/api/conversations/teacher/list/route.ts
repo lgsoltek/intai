@@ -1,10 +1,26 @@
 import { get, list } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
+import { pinyin } from "pinyin-pro";
 import {
   getConversationPrefix,
   hasTeacherAccess,
   teacherUnauthorized,
 } from "../../history";
+
+function getNameSortData(name: string) {
+  const nameSortKey = pinyin(name, {
+    toneType: "none",
+    type: "array",
+  })
+    .join(" ")
+    .trim()
+    .toLocaleLowerCase();
+
+  return {
+    nameSortKey: nameSortKey || name.toLocaleLowerCase(),
+    nameInitial: nameSortKey.charAt(0).toLocaleUpperCase() || "#",
+  };
+}
 
 export async function GET(req: NextRequest) {
   if (!hasTeacherAccess(req)) return teacherUnauthorized();
@@ -34,13 +50,15 @@ export async function GET(req: NextRequest) {
               updatedAt?: string;
             };
 
+            const studentName = conversation.studentName ?? "";
             return {
               pathname: blob.pathname,
               studentId: conversation.studentId ?? fallbackStudentId,
-              studentName: conversation.studentName ?? "",
+              studentName,
               topic: conversation.topic ?? "",
               updatedAt:
                 conversation.updatedAt ?? blob.uploadedAt.toISOString(),
+              ...getNameSortData(studentName),
             };
           } catch {
             return {
@@ -49,6 +67,7 @@ export async function GET(req: NextRequest) {
               studentName: "",
               topic: "",
               updatedAt: blob.uploadedAt.toISOString(),
+              ...getNameSortData(""),
             };
           }
         }),
