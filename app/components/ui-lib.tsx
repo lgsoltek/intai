@@ -14,7 +14,7 @@ import Locale from "../locales";
 
 import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
-import React, { HTMLProps, useEffect, useState } from "react";
+import React, { HTMLProps, useEffect, useLayoutEffect, useState } from "react";
 import { IconButton } from "./button";
 
 export function Popover(props: {
@@ -453,8 +453,44 @@ export function Selector<T>(props: {
   onClose?: () => void;
   multiple?: boolean;
   variant?: "center" | "composer-drawer";
+  anchor?: HTMLElement | null;
 }) {
   const isDrawer = props.variant === "composer-drawer";
+  const [drawerStyle, setDrawerStyle] = useState<React.CSSProperties>();
+
+  useLayoutEffect(() => {
+    if (!isDrawer || !props.anchor) {
+      setDrawerStyle(undefined);
+      return;
+    }
+
+    const updateDrawerStyle = () => {
+      const anchorRect = props.anchor!.getBoundingClientRect();
+      const margin = 16;
+      const drawerWidth = Math.min(460, window.innerWidth - margin * 2);
+      const left = Math.min(
+        Math.max(anchorRect.left, margin),
+        window.innerWidth - drawerWidth - margin,
+      );
+      const bottom = Math.max(margin, window.innerHeight - anchorRect.top + 8);
+      const maxHeight = Math.min(
+        window.innerHeight * 0.38,
+        Math.max(220, anchorRect.top - margin * 2),
+      );
+
+      setDrawerStyle({
+        "--selector-left": `${left}px`,
+        "--selector-width": `${drawerWidth}px`,
+        "--selector-bottom": `${bottom}px`,
+        "--selector-max-height": `${maxHeight}px`,
+      } as React.CSSProperties);
+    };
+
+    updateDrawerStyle();
+    window.addEventListener("resize", updateDrawerStyle);
+    return () => window.removeEventListener("resize", updateDrawerStyle);
+  }, [isDrawer, props.anchor]);
+
   const selectorClassName =
     styles["selector"] + ` ${isDrawer ? styles["selector-drawer"] : ""}`;
   const selector = (
@@ -462,6 +498,7 @@ export function Selector<T>(props: {
       {isDrawer && <div className={styles["selector-dismiss"]} />}
       <div
         className={styles["selector-content"]}
+        style={drawerStyle}
         onClick={(e) => e.stopPropagation()}
       >
         <List>

@@ -19,6 +19,7 @@ import ResetIcon from "../icons/reload.svg";
 import BreakIcon from "../icons/break.svg";
 import DeleteIcon from "../icons/clear.svg";
 import ImageIcon from "../icons/image.svg";
+import RobotIcon from "../icons/robot.svg";
 
 import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
@@ -55,7 +56,7 @@ import Locale, { getLang } from "../locales";
 import { IconButton } from "./button";
 import styles from "./chat.module.scss";
 
-import { showConfirm, showToast } from "./ui-lib";
+import { Selector, showConfirm, showToast } from "./ui-lib";
 import { useNavigate } from "react-router-dom";
 import {
   CHAT_PAGE_SIZE,
@@ -225,7 +226,7 @@ function ClearContextDivider() {
 function ChatAction(props: {
   text: string;
   icon: JSX.Element;
-  onClick: () => void;
+  onClick: (event: React.MouseEvent<HTMLDivElement>) => void;
 }) {
   const iconRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
@@ -248,8 +249,8 @@ function ChatAction(props: {
   return (
     <div
       className={`${styles["chat-input-action"]} clickable`}
-      onClick={() => {
-        props.onClick();
+      onClick={(event) => {
+        props.onClick(event);
         setTimeout(updateWidth, 1);
       }}
       onMouseEnter={updateWidth}
@@ -313,6 +314,7 @@ export function ChatActions(props: {
   uploading: boolean;
 }) {
   const config = useAppConfig();
+  const accessStore = useAccessStore();
   const chatStore = useChatStore();
 
   // stop all responses
@@ -320,7 +322,10 @@ export function ChatActions(props: {
   const stopAll = () => ChatControllerPool.stopAll();
 
   // switch model
-  const currentModel = chatStore.currentSession().mask.modelConfig.model;
+  const currentModelConfig = chatStore.currentSession().mask.modelConfig;
+  const currentModel = currentModelConfig.model;
+  const currentProviderName =
+    currentModelConfig.providerName || ServiceProvider.OpenAI;
   const allModels = useAllModels();
   const models = useMemo(() => {
     const filteredModels = allModels.filter((m) => m.available);
@@ -336,6 +341,17 @@ export function ChatActions(props: {
       return filteredModels;
     }
   }, [allModels]);
+  const currentModelName = useMemo(() => {
+    const model = models.find(
+      (m) =>
+        m.name === currentModel &&
+        m.provider?.providerName === currentProviderName,
+    );
+    return model?.displayName ?? currentModel;
+  }, [models, currentModel, currentProviderName]);
+  const [showModelSelector, setShowModelSelector] = useState(false);
+  const [modelSelectorAnchor, setModelSelectorAnchor] =
+    useState<HTMLDivElement | null>(null);
   const [showUploadImage, setShowUploadImage] = useState(false);
 
   useEffect(() => {
@@ -383,6 +399,57 @@ export function ChatActions(props: {
           text={Locale.Chat.InputActions.UploadImage}
           icon={props.uploading ? <LoadingButtonIcon /> : <ImageIcon />}
         />
+      )}
+      {accessStore.enableModelSelector && (
+        <>
+          <ChatAction
+            onClick={(event) => {
+              setModelSelectorAnchor(event.currentTarget);
+              setShowModelSelector(true);
+            }}
+            text={`${currentModelName} (${currentProviderName})`}
+            icon={<RobotIcon />}
+          />
+
+          {showModelSelector && (
+            <Selector
+              variant="composer-drawer"
+              anchor={modelSelectorAnchor}
+              defaultSelectedValue={`${currentModel}@${currentProviderName}`}
+              items={models.map((m) => ({
+                title: `${m.displayName || m.name}${
+                  m.provider?.providerName
+                    ? ` (${m.provider.providerName})`
+                    : ""
+                }`,
+                value: `${m.name}@${m.provider?.providerName}`,
+              }))}
+              onClose={() => setShowModelSelector(false)}
+              onSelection={(selection) => {
+                if (selection.length === 0) return;
+                const [model, providerName] = selection[0].split("@");
+                const selectedModel = models.find(
+                  (m) =>
+                    m.name === model &&
+                    m.provider?.providerName === providerName,
+                );
+                if (!selectedModel) return;
+
+                chatStore.updateCurrentSession((session) => {
+                  session.mask.modelConfig.model = selectedModel.name;
+                  session.mask.modelConfig.providerName = selectedModel.provider
+                    ?.providerName as ServiceProvider;
+                  session.mask.syncGlobalConfig = false;
+                });
+                showToast(
+                  `${
+                    selectedModel.displayName || selectedModel.name
+                  } (${selectedModel.provider?.providerName})`,
+                );
+              }}
+            />
+          )}
+        </>
       )}
       <ChatAction
         text={Locale.Chat.InputActions.Clear}
