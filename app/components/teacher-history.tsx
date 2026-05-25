@@ -53,6 +53,14 @@ function CalendarGlyph() {
   );
 }
 
+function SortGlyph() {
+  return (
+    <svg className={styles.actionGlyph} viewBox="0 0 24 24">
+      <path d="M8 4v16M5 7l3-3 3 3M16 20V4M13 17l3 3 3-3" />
+    </svg>
+  );
+}
+
 function DownloadGlyph() {
   return (
     <svg className={styles.actionGlyph} viewBox="0 0 24 24">
@@ -140,6 +148,12 @@ function formatDateGroup(timestamp: string) {
   });
 }
 
+function formatMessageTimestamp(timestamp: string) {
+  return Number.isNaN(new Date(timestamp).getTime())
+    ? timestamp
+    : formatTimestamp(timestamp);
+}
+
 export function TeacherHistory() {
   const config = useAppConfig();
   const accessStore = useAccessStore();
@@ -155,6 +169,8 @@ export function TeacherHistory() {
   const [dateOpen, setDateOpen] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [draftStartDate, setDraftStartDate] = useState("");
+  const [draftEndDate, setDraftEndDate] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const sortMenuRef = useRef<HTMLDivElement>(null);
   const dateMenuRef = useRef<HTMLDivElement>(null);
@@ -180,12 +196,17 @@ export function TeacherHistory() {
     });
   }
 
-  async function loadList() {
+  async function loadList(successMessage = "", range = { startDate, endDate }) {
     setLoading(true);
     try {
-      const response = await fetch(`${ApiPath.Conversations}/teacher/list`, {
-        headers,
-      });
+      const searchParams = new URLSearchParams();
+      if (range.startDate) searchParams.set("from", range.startDate);
+      if (range.endDate) searchParams.set("to", range.endDate);
+      const query = searchParams.size ? `?${searchParams.toString()}` : "";
+      const response = await fetch(
+        `${ApiPath.Conversations}/teacher/list${query}`,
+        { headers },
+      );
       if (!response.ok) {
         setItems([]);
         setSelected(undefined);
@@ -199,6 +220,8 @@ export function TeacherHistory() {
       }
       const data = await readJsonResponse<{
         conversations: ConversationListItem[];
+        isRecentWindow?: boolean;
+        recentDays?: number;
       }>(response);
       if (!data || !Array.isArray(data.conversations)) {
         setItems([]);
@@ -208,8 +231,11 @@ export function TeacherHistory() {
       setItems(data.conversations);
       setMessage(
         data.conversations.length === 0
-          ? "No test conversations have been saved yet."
-          : "",
+          ? data.isRecentWindow
+            ? "No conversations found in the recent 15 days."
+            : "No conversations found in that date range."
+          : successMessage ||
+              (data.isRecentWindow ? "Showing recent 15 days." : ""),
       );
     } catch {
       setItems([]);
@@ -272,7 +298,7 @@ export function TeacherHistory() {
       setSelected(undefined);
       setSelectedPathname("");
       setConfirmDelete(false);
-      await loadList();
+      await loadList("Conversation deleted.");
     } catch {
       setMessage("Could not delete that conversation.");
     } finally {
@@ -315,14 +341,7 @@ export function TeacherHistory() {
         [item.studentName, item.studentId, item.topic].some((field) =>
           field.toLocaleLowerCase().includes(query),
         );
-      const timestamp = new Date(item.updatedAt).getTime();
-      const afterStart =
-        !startDate ||
-        timestamp >= new Date(`${startDate}T00:00:00+08:00`).getTime();
-      const beforeEnd =
-        !endDate ||
-        timestamp <= new Date(`${endDate}T23:59:59.999+08:00`).getTime();
-      return matchesQuery && afterStart && beforeEnd;
+      return matchesQuery;
     });
 
     return filtered.sort((a, b) => {
@@ -341,7 +360,7 @@ export function TeacherHistory() {
       }
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
-  }, [endDate, items, search, sortBy, startDate]);
+  }, [items, search, sortBy]);
   const groupedItems = useMemo(() => {
     return visibleItems.reduce<
       Array<{ label: string; items: ConversationListItem[] }>
@@ -458,11 +477,7 @@ export function TeacherHistory() {
             <div className={styles.toolbarActions}>
               <div className={styles.sortMenu} ref={sortMenuRef}>
                 <IconButton
-                  icon={
-                    <span className={styles.sortGlyph} aria-hidden="true">
-                      ⇅
-                    </span>
-                  }
+                  icon={<SortGlyph />}
                   bordered
                   title={`Sort: ${activeSortLabel}`}
                   onClick={() => setSortOpen((open) => !open)}
@@ -501,13 +516,14 @@ export function TeacherHistory() {
                 {dateOpen && (
                   <div className={styles.datePopover}>
                     <strong>Conversation dates</strong>
+                    <small>Showing recent 15 days by default</small>
                     <label>
                       From
                       <input
                         type="date"
-                        value={startDate}
+                        value={draftStartDate}
                         onChange={(event) =>
-                          setStartDate(event.currentTarget.value)
+                          setDraftStartDate(event.currentTarget.value)
                         }
                       />
                     </label>
@@ -515,21 +531,44 @@ export function TeacherHistory() {
                       To
                       <input
                         type="date"
-                        value={endDate}
+                        value={draftEndDate}
                         onChange={(event) =>
-                          setEndDate(event.currentTarget.value)
+                          setDraftEndDate(event.currentTarget.value)
                         }
                       />
                     </label>
-                    <button
-                      className={styles.clearDates}
-                      onClick={() => {
-                        setStartDate("");
-                        setEndDate("");
-                      }}
-                    >
-                      Clear dates
-                    </button>
+                    <div className={styles.dateActions}>
+                      <button
+                        className={styles.clearDates}
+                        onClick={() => {
+                          setStartDate("");
+                          setEndDate("");
+                          setDraftStartDate("");
+                          setDraftEndDate("");
+                          setDateOpen(false);
+                          loadList("Showing recent 15 days.", {
+                            startDate: "",
+                            endDate: "",
+                          });
+                        }}
+                      >
+                        Recent
+                      </button>
+                      <button
+                        className={styles.applyDates}
+                        onClick={() => {
+                          setStartDate(draftStartDate);
+                          setEndDate(draftEndDate);
+                          setDateOpen(false);
+                          loadList("Date filter applied.", {
+                            startDate: draftStartDate,
+                            endDate: draftEndDate,
+                          });
+                        }}
+                      >
+                        Apply
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -538,7 +577,7 @@ export function TeacherHistory() {
                 bordered
                 title="Refresh conversations"
                 disabled={loading || (teacherHistoryProtected && !teacherCode)}
-                onClick={loadList}
+                onClick={() => loadList("Conversations refreshed.")}
                 className={styles.toolButton}
               />
             </div>
@@ -555,6 +594,7 @@ export function TeacherHistory() {
                         : ""
                     }`}
                     key={item.pathname}
+                    title={item.topic || "Untitled conversation"}
                     onClick={() => openConversation(item)}
                   >
                     <span className={styles.studentLine}>
@@ -567,6 +607,9 @@ export function TeacherHistory() {
                     </span>
                     <span className={styles.cardDate}>
                       {formatTimestamp(item.updatedAt)}
+                    </span>
+                    <span className={styles.cardTopicHint}>
+                      {item.topic || "Untitled conversation"}
                     </span>
                   </button>
                 ))}
@@ -624,33 +667,35 @@ export function TeacherHistory() {
                   </div>
                 </div>
               </div>
-              {selected.messages.map((chatMessage) => (
-                <div
-                  key={chatMessage.id}
-                  className={`${styles.message} ${
-                    chatMessage.role === "user" ? styles.messageUser : ""
-                  }`}
-                >
-                  <div className={styles.messageHeader}>
-                    <strong
-                      className={`${styles.speakerPill} ${
-                        chatMessage.role === "user"
-                          ? styles.speakerPillUser
-                          : styles.speakerPillLlm
-                      }`}
-                    >
-                      {chatMessage.role === "user" ? "Student" : "Assistant"}
-                    </strong>
-                    <small>{chatMessage.date}</small>
+              <div className={styles.transcriptMessages}>
+                {selected.messages.map((chatMessage) => (
+                  <div
+                    key={chatMessage.id}
+                    className={`${styles.message} ${
+                      chatMessage.role === "user" ? styles.messageUser : ""
+                    }`}
+                  >
+                    <div className={styles.messageHeader}>
+                      <strong
+                        className={`${styles.speakerPill} ${
+                          chatMessage.role === "user"
+                            ? styles.speakerPillUser
+                            : styles.speakerPillLlm
+                        }`}
+                      >
+                        {chatMessage.role === "user" ? "Student" : "Assistant"}
+                      </strong>
+                      <small>{formatMessageTimestamp(chatMessage.date)}</small>
+                    </div>
+                    <div className={styles.messageBody}>
+                      <Markdown
+                        content={messageText(chatMessage)}
+                        fontSize={fontSize}
+                      />
+                    </div>
                   </div>
-                  <div className={styles.messageBody}>
-                    <Markdown
-                      content={messageText(chatMessage)}
-                      fontSize={fontSize}
-                    />
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </>
           ) : (
             <p className={styles.empty}>Select a conversation to read it.</p>

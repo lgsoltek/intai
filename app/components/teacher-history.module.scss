@@ -81,6 +81,7 @@
   font-size: 13px;
   opacity: 0.7;
   min-height: 18px;
+  animation: historyNoticeIn 0.2s ease;
 }
 
 .openFeedback {
@@ -88,6 +89,7 @@
   text-align: center;
   font-size: 13px;
   opacity: 0.7;
+  animation: historyNoticeIn 0.2s ease;
 }
 
 .content {
@@ -170,13 +172,6 @@
   position: relative;
 }
 
-.sortGlyph {
-  color: var(--primary);
-  font-size: 21px;
-  line-height: 1;
-  font-weight: 750;
-}
-
 .actionGlyph {
   width: 20px;
   height: 20px;
@@ -191,7 +186,7 @@
   position: absolute;
   z-index: 20;
   top: calc(100% + 8px);
-  right: -42px;
+  left: 0;
   width: 172px;
   box-sizing: border-box;
   padding: 6px;
@@ -199,6 +194,7 @@
   border-radius: 14px;
   background: var(--surface-strong);
   box-shadow: 0 15px 36px rgba(41, 39, 75, 0.17);
+  animation: historyPopoverIn 0.18s ease;
 }
 
 .dateMenu {
@@ -219,11 +215,19 @@
   background: var(--surface-strong);
   box-shadow: 0 15px 36px rgba(41, 39, 75, 0.17);
   color: var(--black);
+  animation: historyPopoverInCentered 0.18s ease;
 
   strong {
     display: block;
     margin-bottom: 10px;
     font-size: 13px;
+  }
+
+  small {
+    display: block;
+    color: var(--text-muted);
+    font-size: 11px;
+    opacity: 0.8;
   }
 
   label {
@@ -247,10 +251,16 @@
   }
 }
 
-.clearDates {
-  width: 100%;
-  min-height: 32px;
+.dateActions {
+  display: flex;
+  gap: 7px;
   margin-top: 11px;
+}
+
+.clearDates,
+.applyDates {
+  flex: 1 1 0;
+  min-height: 32px;
   border: 0;
   border-radius: 8px;
   background: color-mix(in srgb, var(--primary) 10%, var(--surface-strong));
@@ -260,6 +270,15 @@
 
   &:hover {
     background: color-mix(in srgb, var(--primary) 16%, var(--surface-strong));
+  }
+}
+
+.applyDates {
+  background: color-mix(in srgb, var(--primary) 86%, #28224f);
+  color: #fff;
+
+  &:hover {
+    background: color-mix(in srgb, var(--primary) 96%, #28224f);
   }
 }
 
@@ -378,6 +397,13 @@
       color-mix(in srgb, var(--primary) 8%, var(--surface-strong)) 78%
     );
     box-shadow: 0 16px 28px rgba(111, 120, 182, 0.18);
+
+    .cardTopicHint {
+      max-height: 32px;
+      margin-top: 7px;
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
 
@@ -428,12 +454,31 @@
   color: var(--text-muted);
 }
 
+.cardTopicHint {
+  display: block;
+  max-height: 0;
+  margin-top: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  opacity: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transform: translateY(-4px);
+  transition:
+    max-height 0.2s ease,
+    margin-top 0.2s ease,
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
 .transcript {
   border: var(--border-in-light);
   border-radius: 14px;
   background: var(--surface-strong);
-  padding: 20px;
-  overflow-y: auto;
+  padding: 0;
+  overflow: hidden;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -456,16 +501,21 @@
 }
 
 .transcriptSummary {
-  position: sticky;
-  top: -20px;
+  flex: 0 0 auto;
   z-index: 2;
-  margin: -20px -20px 10px;
+  margin: 0;
   padding: 13px 18px 11px;
   background: color-mix(in srgb, var(--primary) 8%, var(--surface-strong));
   border-bottom: 1px solid color-mix(in srgb, var(--primary) 24%, transparent);
   box-shadow: 0 7px 14px -12px rgba(41, 39, 75, 0.46);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+}
+
+.transcriptMessages {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 20px 20px;
 }
 
 .transcriptIdentity {
@@ -500,6 +550,7 @@
   min-width: 111px;
   padding: 0 11px;
   border-radius: 999px;
+  animation: historyConfirmIn 0.18s ease;
 }
 
 .meta {
@@ -527,6 +578,10 @@
   flex-direction: column;
   align-items: flex-start;
   margin-top: 20px;
+}
+
+.message:first-child {
+  margin-top: 13px;
 }
 
 .messageHeader {
@@ -610,5 +665,57 @@
 
   .transcript {
     overflow-y: visible;
+  }
+
+  .transcriptMessages {
+    overflow-y: visible;
+  }
+}
+
+@keyframes historyPopoverIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes historyPopoverInCentered {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-5px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@keyframes historyConfirmIn {
+  from {
+    opacity: 0.72;
+    transform: scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes historyNoticeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+
+  to {
+    opacity: 0.7;
+    transform: translateY(0);
   }
 }

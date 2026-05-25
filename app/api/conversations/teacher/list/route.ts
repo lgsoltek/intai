@@ -7,6 +7,8 @@ import {
   teacherUnauthorized,
 } from "../../history";
 
+const DEFAULT_RECENT_DAYS = 15;
+
 function getNameSortData(name: string) {
   const nameSortKey = pinyin(name, {
     toneType: "none",
@@ -22,14 +24,49 @@ function getNameSortData(name: string) {
   };
 }
 
+function dateBoundary(date: string | null, endOfDay: boolean) {
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+  const timestamp = new Date(
+    `${date}T${endOfDay ? "23:59:59.999" : "00:00:00"}+08:00`,
+  ).getTime();
+  return Number.isNaN(timestamp) ? undefined : timestamp;
+}
+
 export async function GET(req: NextRequest) {
   if (!hasTeacherAccess(req)) return teacherUnauthorized();
 
   try {
-    const result = await list({ prefix: `${getConversationPrefix()}/` });
+    const customFrom = dateBoundary(
+      req.nextUrl.searchParams.get("from"),
+      false,
+    );
+    const customTo = dateBoundary(req.nextUrl.searchParams.get("to"), true);
+    const hasCustomRange = customFrom !== undefined || customTo !== undefined;
+    const from =
+      customFrom ??
+      (hasCustomRange
+        ? undefined
+        : Date.now() - DEFAULT_RECENT_DAYS * 24 * 60 * 60 * 1000);
+    const blobs = [];
+    let cursor: string | undefined;
+
+    do {
+      const result = await list({
+        prefix: `${getConversationPrefix()}/`,
+        cursor,
+      });
+      blobs.push(...result.blobs);
+      cursor = result.hasMore ? result.cursor : undefined;
+    } while (cursor);
+
     const conversations = await Promise.all(
-      result.blobs
-        .filter((blob) => blob.pathname.endsWith(".json"))
+      blobs
+        .filter(
+          (blob) =>
+            blob.pathname.endsWith(".json") &&
+            (from === undefined || blob.uploadedAt.getTime() >= from) &&
+            (customTo === undefined || blob.uploadedAt.getTime() <= customTo),
+        )
         .map(async (blob) => {
           const fallbackStudentId = blob.pathname.split("/").at(-2) ?? "";
           try {
@@ -77,7 +114,11 @@ export async function GET(req: NextRequest) {
         new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
     );
 
-    return NextResponse.json({ conversations });
+    return NextResponse.json({
+      conversations,
+      isRecentWindow: !hasCustomRange,
+      recentDays: DEFAULT_RECENT_DAYS,
+    });
   } catch (error) {
     console.error("[Conversation History] could not list transcripts", error);
     return NextResponse.json(
