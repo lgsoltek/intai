@@ -6,7 +6,7 @@ import { ApiPath } from "../constant";
 import Locale from "../locales";
 import MaxIcon from "../icons/max.svg";
 import { Theme, useAccessStore, useAppConfig } from "../store";
-import { downloadAs } from "../utils";
+import { downloadAs, useMobileScreen } from "../utils";
 import { IconButton } from "./button";
 import styles from "./teacher-history.module.scss";
 
@@ -75,6 +75,10 @@ function TrashGlyph() {
       <path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" />
     </svg>
   );
+}
+
+function ListGlyph() {
+  return <span className={styles.listToggleGlyph} aria-hidden="true" />;
 }
 
 type ConversationMessage = {
@@ -172,10 +176,12 @@ export function TeacherHistory() {
   const [draftStartDate, setDraftStartDate] = useState("");
   const [draftEndDate, setDraftEndDate] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [mobileListOpen, setMobileListOpen] = useState(true);
   const sortMenuRef = useRef<HTMLDivElement>(null);
   const dateMenuRef = useRef<HTMLDivElement>(null);
   const deleteRef = useRef<HTMLDivElement>(null);
   const fontSize = config.fontSize;
+  const isMobileScreen = useMobileScreen();
   const teacherHistoryProtected = accessStore.teacherHistoryProtected !== false;
 
   const headers = { "x-teacher-history-code": teacherCode };
@@ -247,6 +253,9 @@ export function TeacherHistory() {
 
   async function openConversation(item: ConversationListItem) {
     setConfirmDelete(false);
+    if (isMobileScreen) {
+      setMobileListOpen(false);
+    }
     setLoading(true);
     try {
       const response = await fetch(
@@ -298,6 +307,9 @@ export function TeacherHistory() {
       setSelected(undefined);
       setSelectedPathname("");
       setConfirmDelete(false);
+      if (isMobileScreen) {
+        setMobileListOpen(true);
+      }
       await loadList("Conversation deleted.");
     } catch {
       setMessage("Could not delete that conversation.");
@@ -382,10 +394,33 @@ export function TeacherHistory() {
   }, [sortBy, visibleItems]);
   const activeSortLabel =
     sortOptions.find((option) => option.value === sortBy)?.label ?? "";
+  const activeDateLabel =
+    startDate && startDate === endDate
+      ? `On ${startDate}`
+      : startDate && endDate
+      ? `${startDate} - ${endDate}`
+      : startDate
+      ? `From ${startDate}`
+      : endDate
+      ? `Until ${endDate}`
+      : "Recent 15 days";
 
   return (
     <div className={styles.page}>
       <header className={`window-header ${styles.header}`}>
+        {isMobileScreen && (
+          <div className="window-actions">
+            <div className="window-action-button">
+              <IconButton
+                icon={<ListGlyph />}
+                bordered
+                title="Saved conversations"
+                onClick={() => setMobileListOpen((open) => !open)}
+                className={styles.mobileListButton}
+              />
+            </div>
+          </div>
+        )}
         <div className="window-header-title">
           <div className="window-header-main-title">Conversation History</div>
           <div className="window-header-sub-title">
@@ -422,7 +457,7 @@ export function TeacherHistory() {
               className={styles.themeButton}
             />
           </div>
-          <div className="window-action-button">
+          <div className={`window-action-button ${styles.desktopOnlyAction}`}>
             <IconButton
               icon={<MaxIcon />}
               bordered
@@ -451,7 +486,7 @@ export function TeacherHistory() {
               type="primary"
               text={loading ? "Loading..." : "Load History"}
               disabled={!teacherCode || loading}
-              onClick={loadList}
+              onClick={() => loadList()}
             />
           </div>
           {message && <span className={styles.feedback}>{message}</span>}
@@ -461,7 +496,18 @@ export function TeacherHistory() {
       ) : null}
 
       <main className={styles.content}>
-        <aside className={styles.list}>
+        {isMobileScreen && mobileListOpen && selected && (
+          <button
+            className={styles.mobileBackdrop}
+            aria-label="Close conversation list"
+            onClick={() => setMobileListOpen(false)}
+          />
+        )}
+        <aside
+          className={`${styles.list} ${
+            mobileListOpen ? styles.mobileListOpen : ""
+          }`}
+        >
           <div className={styles.listToolbar}>
             <div className={styles.listHeader}>
               <strong>Saved Conversations</strong>
@@ -475,41 +521,14 @@ export function TeacherHistory() {
               type="search"
             />
             <div className={styles.toolbarActions}>
-              <div className={styles.sortMenu} ref={sortMenuRef}>
-                <IconButton
-                  icon={<SortGlyph />}
-                  bordered
-                  title={`Sort: ${activeSortLabel}`}
-                  onClick={() => setSortOpen((open) => !open)}
-                  className={styles.toolButton}
-                />
-                {sortOpen && (
-                  <div className={styles.sortPopover}>
-                    {sortOptions.map((option) => (
-                      <button
-                        className={`${styles.sortOption} ${
-                          option.value === sortBy ? styles.sortOptionActive : ""
-                        }`}
-                        key={option.value}
-                        onClick={() => {
-                          setSortBy(option.value);
-                          setSortOpen(false);
-                        }}
-                      >
-                        {option.label}
-                        {option.value === sortBy && <span>✓</span>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
               <div className={styles.dateMenu} ref={dateMenuRef}>
                 <IconButton
                   icon={<CalendarGlyph />}
+                  text={activeDateLabel}
                   bordered
                   title="Filter by date"
                   onClick={() => setDateOpen((open) => !open)}
-                  className={`${styles.toolButton} ${
+                  className={`${styles.dateButton} ${
                     startDate || endDate ? styles.toolButtonActive : ""
                   }`}
                 />
@@ -569,6 +588,34 @@ export function TeacherHistory() {
                         Apply
                       </button>
                     </div>
+                  </div>
+                )}
+              </div>
+              <div className={styles.sortMenu} ref={sortMenuRef}>
+                <IconButton
+                  icon={<SortGlyph />}
+                  bordered
+                  title={`Sort: ${activeSortLabel}`}
+                  onClick={() => setSortOpen((open) => !open)}
+                  className={styles.toolButton}
+                />
+                {sortOpen && (
+                  <div className={styles.sortPopover}>
+                    {sortOptions.map((option) => (
+                      <button
+                        className={`${styles.sortOption} ${
+                          option.value === sortBy ? styles.sortOptionActive : ""
+                        }`}
+                        key={option.value}
+                        onClick={() => {
+                          setSortBy(option.value);
+                          setSortOpen(false);
+                        }}
+                      >
+                        {option.label}
+                        {option.value === sortBy && <span>✓</span>}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
