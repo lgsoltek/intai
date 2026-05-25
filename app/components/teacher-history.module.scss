@@ -123,12 +123,16 @@
   color: var(--text-muted);
   font-size: 13px;
   font-weight: 650;
+
+  .count {
+    margin-left: auto;
+  }
 }
 
 .toolbarActions {
-  margin-left: auto;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 7px;
 }
 
@@ -136,7 +140,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 26px;
+  min-width: 28px;
   height: 26px;
   padding: 0 7px;
   box-sizing: border-box;
@@ -154,6 +158,12 @@
   box-sizing: border-box;
   padding: 8px;
   border-radius: 50%;
+  color: var(--primary);
+}
+
+.toolButtonActive {
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--primary));
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface-strong));
 }
 
 .sortMenu {
@@ -162,9 +172,19 @@
 
 .sortGlyph {
   color: var(--primary);
-  font-size: 19px;
+  font-size: 21px;
   line-height: 1;
   font-weight: 750;
+}
+
+.actionGlyph {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .sortPopover {
@@ -179,6 +199,67 @@
   border-radius: 14px;
   background: var(--surface-strong);
   box-shadow: 0 15px 36px rgba(41, 39, 75, 0.17);
+}
+
+.dateMenu {
+  position: relative;
+}
+
+.datePopover {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  right: -42px;
+  width: 205px;
+  box-sizing: border-box;
+  padding: 12px;
+  border: var(--border-in-light);
+  border-radius: 14px;
+  background: var(--surface-strong);
+  box-shadow: 0 15px 36px rgba(41, 39, 75, 0.17);
+  color: var(--black);
+
+  strong {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+
+  label {
+    display: block;
+    margin-top: 8px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 650;
+  }
+
+  input {
+    width: 100%;
+    min-height: 33px;
+    margin-top: 4px;
+    box-sizing: border-box;
+    border: var(--border-in-light);
+    border-radius: 8px;
+    background: var(--surface-strong);
+    color: var(--black);
+    padding: 0 7px;
+  }
+}
+
+.clearDates {
+  width: 100%;
+  min-height: 32px;
+  margin-top: 11px;
+  border: 0;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface-strong));
+  color: var(--primary);
+  font-weight: 650;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--primary) 16%, var(--surface-strong));
+  }
 }
 
 .sortOption {
@@ -233,8 +314,8 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: 5px 12px 16px;
-  margin: -5px -9px 0;
+  padding: 8px 15px 20px;
+  margin: 0;
 }
 
 .cardGroup {
@@ -249,7 +330,7 @@
 
 .groupHeader {
   position: sticky;
-  top: -5px;
+  top: 0;
   z-index: 4;
   width: fit-content;
   padding: 4px 8px;
@@ -279,13 +360,14 @@
     box-shadow 0.2s ease,
     transform 0.2s ease,
     background 0.2s ease;
+  outline: none;
 
   strong {
     display: block;
   }
 
   &:hover,
-  &:focus {
+  &:focus-visible {
     z-index: 3;
     transform: translateY(-1px);
     border-color: color-mix(in srgb, var(--accent) 45%, var(--primary));
@@ -306,9 +388,7 @@
     color-mix(in srgb, var(--accent) 20%, var(--surface-strong)),
     color-mix(in srgb, var(--primary) 13%, var(--surface-strong)) 78%
   );
-  box-shadow:
-    0 16px 30px rgba(111, 120, 182, 0.18),
-    inset 3px 0 0 color-mix(in srgb, var(--accent) 72%, var(--primary));
+  box-shadow: 0 12px 24px rgba(111, 120, 182, 0.16);
 }
 
 .studentLine {
@@ -406,26 +486,19 @@
   padding: 10px;
   box-sizing: border-box;
   border-radius: 50%;
+  color: var(--primary);
 }
 
 .deleteControl {
   position: relative;
 }
 
-.deleteConfirm {
-  position: absolute;
-  z-index: 3;
-  top: calc(100% + 7px);
-  right: 0;
-  white-space: nowrap;
-  padding: 8px 11px;
-  border-radius: 10px;
-  background: var(--surface-strong);
-  border: 1px solid color-mix(in srgb, #e25151 35%, transparent);
-  color: #c14343;
-  box-shadow: 0 11px 25px rgba(41, 39, 75, 0.13);
-  font-size: 12px;
-  font-weight: 650;
+.confirmDeleteAction {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 111px;
+  padding: 0 11px;
+  border-radius: 999px;
 }
 
 .meta {

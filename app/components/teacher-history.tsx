@@ -4,10 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiPath } from "../constant";
 import Locale from "../locales";
-import DeleteIcon from "../icons/delete.svg";
-import DownloadIcon from "../icons/download.svg";
 import MaxIcon from "../icons/max.svg";
-import RefreshIcon from "../icons/reload.svg";
 import { Theme, useAccessStore, useAppConfig } from "../store";
 import { downloadAs } from "../utils";
 import { IconButton } from "./button";
@@ -33,6 +30,42 @@ const sortOptions: Array<{ value: SortOption; label: string }> = [
   { value: "studentId", label: "Student ID" },
   { value: "studentName", label: "Name (Pinyin)" },
 ];
+
+function RefreshGlyph() {
+  return (
+    <svg className={styles.actionGlyph} viewBox="0 0 24 24">
+      <path d="M20 11a8 8 0 0 0-14-5.25L4 8" />
+      <path d="M4 4v4h4" />
+      <path d="M4 13a8 8 0 0 0 14 5.25L20 16" />
+      <path d="M20 20v-4h-4" />
+    </svg>
+  );
+}
+
+function CalendarGlyph() {
+  return (
+    <svg className={styles.actionGlyph} viewBox="0 0 24 24">
+      <path d="M7 3v4M17 3v4M4 9h16" />
+      <rect x="4" y="5" width="16" height="16" rx="3" />
+    </svg>
+  );
+}
+
+function DownloadGlyph() {
+  return (
+    <svg className={styles.actionGlyph} viewBox="0 0 24 24">
+      <path d="M12 4v10M8 10l4 4 4-4M5 19h14" />
+    </svg>
+  );
+}
+
+function TrashGlyph() {
+  return (
+    <svg className={styles.actionGlyph} viewBox="0 0 24 24">
+      <path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" />
+    </svg>
+  );
+}
 
 type ConversationMessage = {
   id: string;
@@ -92,6 +125,10 @@ function buildMarkdown(conversation: Conversation) {
   );
 }
 
+function formatTimestamp(timestamp: string) {
+  return new Date(timestamp).toLocaleString();
+}
+
 export function TeacherHistory() {
   const config = useAppConfig();
   const accessStore = useAccessStore();
@@ -104,8 +141,12 @@ export function TeacherHistory() {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [sortOpen, setSortOpen] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const sortMenuRef = useRef<HTMLDivElement>(null);
+  const dateMenuRef = useRef<HTMLDivElement>(null);
   const deleteRef = useRef<HTMLDivElement>(null);
   const fontSize = config.fontSize;
   const teacherHistoryProtected = accessStore.teacherHistoryProtected !== false;
@@ -242,6 +283,9 @@ export function TeacherHistory() {
       if (!sortMenuRef.current?.contains(target)) {
         setSortOpen(false);
       }
+      if (!dateMenuRef.current?.contains(target)) {
+        setDateOpen(false);
+      }
       if (!deleteRef.current?.contains(target)) {
         setConfirmDelete(false);
       }
@@ -255,10 +299,17 @@ export function TeacherHistory() {
   const visibleItems = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
     const filtered = items.filter((item) => {
-      if (!query) return true;
-      return [item.studentName, item.studentId, item.topic].some((field) =>
-        field.toLocaleLowerCase().includes(query),
-      );
+      const matchesQuery =
+        !query ||
+        [item.studentName, item.studentId, item.topic].some((field) =>
+          field.toLocaleLowerCase().includes(query),
+        );
+      const timestamp = new Date(item.updatedAt).getTime();
+      const afterStart =
+        !startDate || timestamp >= new Date(`${startDate}T00:00:00`).getTime();
+      const beforeEnd =
+        !endDate || timestamp <= new Date(`${endDate}T23:59:59.999`).getTime();
+      return matchesQuery && afterStart && beforeEnd;
     });
 
     return filtered.sort((a, b) => {
@@ -277,7 +328,7 @@ export function TeacherHistory() {
       }
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
-  }, [items, search, sortBy]);
+  }, [endDate, items, search, sortBy, startDate]);
   const groupedItems = useMemo(() => {
     return visibleItems.reduce<
       Array<{ label: string; items: ConversationListItem[] }>
@@ -382,53 +433,7 @@ export function TeacherHistory() {
           <div className={styles.listToolbar}>
             <div className={styles.listHeader}>
               <strong>Saved Conversations</strong>
-              <div className={styles.toolbarActions}>
-                <span className={styles.count}>{visibleItems.length}</span>
-                <div className={styles.sortMenu} ref={sortMenuRef}>
-                  <IconButton
-                    icon={
-                      <span className={styles.sortGlyph} aria-hidden="true">
-                        ⇅
-                      </span>
-                    }
-                    bordered
-                    title={`Sort: ${activeSortLabel}`}
-                    onClick={() => setSortOpen((open) => !open)}
-                    className={styles.toolButton}
-                  />
-                  {sortOpen && (
-                    <div className={styles.sortPopover}>
-                      {sortOptions.map((option) => (
-                        <button
-                          className={`${styles.sortOption} ${
-                            option.value === sortBy
-                              ? styles.sortOptionActive
-                              : ""
-                          }`}
-                          key={option.value}
-                          onClick={() => {
-                            setSortBy(option.value);
-                            setSortOpen(false);
-                          }}
-                        >
-                          {option.label}
-                          {option.value === sortBy && <span>✓</span>}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <IconButton
-                  icon={<RefreshIcon />}
-                  bordered
-                  title="Refresh conversations"
-                  disabled={
-                    loading || (teacherHistoryProtected && !teacherCode)
-                  }
-                  onClick={loadList}
-                  className={styles.toolButton}
-                />
-              </div>
+              <span className={styles.count}>{visibleItems.length}</span>
             </div>
             <input
               className={styles.searchInput}
@@ -437,6 +442,93 @@ export function TeacherHistory() {
               placeholder="Search name, ID or topic"
               type="search"
             />
+            <div className={styles.toolbarActions}>
+              <div className={styles.sortMenu} ref={sortMenuRef}>
+                <IconButton
+                  icon={
+                    <span className={styles.sortGlyph} aria-hidden="true">
+                      ⇅
+                    </span>
+                  }
+                  bordered
+                  title={`Sort: ${activeSortLabel}`}
+                  onClick={() => setSortOpen((open) => !open)}
+                  className={styles.toolButton}
+                />
+                {sortOpen && (
+                  <div className={styles.sortPopover}>
+                    {sortOptions.map((option) => (
+                      <button
+                        className={`${styles.sortOption} ${
+                          option.value === sortBy ? styles.sortOptionActive : ""
+                        }`}
+                        key={option.value}
+                        onClick={() => {
+                          setSortBy(option.value);
+                          setSortOpen(false);
+                        }}
+                      >
+                        {option.label}
+                        {option.value === sortBy && <span>✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className={styles.dateMenu} ref={dateMenuRef}>
+                <IconButton
+                  icon={<CalendarGlyph />}
+                  bordered
+                  title="Filter by date"
+                  onClick={() => setDateOpen((open) => !open)}
+                  className={`${styles.toolButton} ${
+                    startDate || endDate ? styles.toolButtonActive : ""
+                  }`}
+                />
+                {dateOpen && (
+                  <div className={styles.datePopover}>
+                    <strong>Conversation dates</strong>
+                    <label>
+                      From
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(event) =>
+                          setStartDate(event.currentTarget.value)
+                        }
+                      />
+                    </label>
+                    <label>
+                      To
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(event) =>
+                          setEndDate(event.currentTarget.value)
+                        }
+                      />
+                    </label>
+                    <button
+                      className={styles.clearDates}
+                      onClick={() => {
+                        setStartDate("");
+                        setEndDate("");
+                      }}
+                    >
+                      Clear dates
+                    </button>
+                  </div>
+                )}
+              </div>
+              <IconButton
+                icon={<RefreshGlyph />}
+                bordered
+                title="Refresh conversations"
+                disabled={loading || (teacherHistoryProtected && !teacherCode)}
+                onClick={loadList}
+                className={styles.toolButton}
+              />
+            </div>
           </div>
           <div className={styles.listCards}>
             {groupedItems.map((group) => (
@@ -461,7 +553,7 @@ export function TeacherHistory() {
                       </span>
                     </span>
                     <span className={styles.cardDate}>
-                      {new Date(item.updatedAt).toLocaleString()}
+                      {formatTimestamp(item.updatedAt)}
                     </span>
                   </button>
                 ))}
@@ -481,12 +573,29 @@ export function TeacherHistory() {
                     </h2>
                     <p className={styles.meta}>
                       <span>{selected.topic}</span>
-                      <span>Updated {selected.updatedAt}</span>
+                      <span>Updated {formatTimestamp(selected.updatedAt)}</span>
                     </p>
                   </div>
                   <div className={styles.transcriptActions}>
+                    <div className={styles.deleteControl} ref={deleteRef}>
+                      <IconButton
+                        icon={confirmDelete ? undefined : <TrashGlyph />}
+                        text={confirmDelete ? "Confirm delete" : undefined}
+                        bordered
+                        type={confirmDelete ? "danger" : null}
+                        title={
+                          confirmDelete
+                            ? "Click again to permanently delete"
+                            : "Delete conversation"
+                        }
+                        className={`${styles.circleAction} ${
+                          confirmDelete ? styles.confirmDeleteAction : ""
+                        }`}
+                        onClick={deleteConversation}
+                      />
+                    </div>
                     <IconButton
-                      icon={<DownloadIcon />}
+                      icon={<DownloadGlyph />}
                       bordered
                       title="Download Markdown"
                       className={styles.circleAction}
@@ -497,25 +606,6 @@ export function TeacherHistory() {
                         )
                       }
                     />
-                    <div className={styles.deleteControl} ref={deleteRef}>
-                      <IconButton
-                        icon={<DeleteIcon />}
-                        bordered
-                        type={confirmDelete ? "danger" : null}
-                        title={
-                          confirmDelete
-                            ? "Click again to permanently delete"
-                            : "Delete conversation"
-                        }
-                        className={styles.circleAction}
-                        onClick={deleteConversation}
-                      />
-                      {confirmDelete && (
-                        <div className={styles.deleteConfirm}>
-                          Click again to delete
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
               </div>
