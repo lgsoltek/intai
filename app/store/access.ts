@@ -40,6 +40,7 @@ const DEFAULT_ACCESS_STATE = {
   customModels: "",
   defaultModel: "",
   enableModelSelector: false,
+  teacherHistoryProtected: true,
 };
 
 export const useAccessStore = createPersistStore(

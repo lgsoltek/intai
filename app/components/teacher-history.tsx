@@ -1,12 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ApiPath, Path } from "../constant";
+import { useEffect, useState } from "react";
+import { ApiPath } from "../constant";
 import Locale from "../locales";
 import MaxIcon from "../icons/max.svg";
-import { useAppConfig } from "../store";
+import { Theme, useAccessStore, useAppConfig } from "../store";
 import { downloadAs } from "../utils";
 import { IconButton } from "./button";
 import styles from "./teacher-history.module.scss";
@@ -54,19 +53,27 @@ function buildMarkdown(conversation: Conversation) {
 }
 
 export function TeacherHistory() {
-  const navigate = useNavigate();
   const config = useAppConfig();
+  const accessStore = useAccessStore();
   const [teacherCode, setTeacherCode] = useState("");
   const [items, setItems] = useState<ConversationListItem[]>([]);
   const [selected, setSelected] = useState<Conversation>();
   const [selectedPathname, setSelectedPathname] = useState("");
-  const [message, setMessage] = useState(
-    "Enter the teacher password to load saved conversations.",
-  );
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const fontSize = config.fontSize;
+  const teacherHistoryProtected = accessStore.teacherHistoryProtected !== false;
 
   const headers = { "x-teacher-history-code": teacherCode };
+
+  function nextTheme() {
+    const themes = [Theme.Light, Theme.Dark];
+    const themeIndex = themes.indexOf(config.theme);
+    const nextIndex = (themeIndex + 1) % themes.length;
+    config.update((appConfig) => {
+      appConfig.theme = themes[nextIndex];
+    });
+  }
 
   function updateFontSize(delta: number) {
     config.update((appConfig) => {
@@ -85,7 +92,11 @@ export function TeacherHistory() {
       });
       if (!response.ok) {
         setItems([]);
-        setMessage("The password was not accepted.");
+        setMessage(
+          teacherHistoryProtected
+            ? "The password was not accepted."
+            : "Could not load saved conversations.",
+        );
         return;
       }
       const data = (await response.json()) as {
@@ -95,7 +106,7 @@ export function TeacherHistory() {
       setMessage(
         data.conversations.length === 0
           ? "No test conversations have been saved yet."
-          : `${data.conversations.length} saved conversation(s).`,
+          : "",
       );
     } finally {
       setLoading(false);
@@ -121,6 +132,16 @@ export function TeacherHistory() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (!teacherHistoryProtected) {
+      loadList();
+    }
+    // loadList intentionally runs once when password protection is disabled.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teacherHistoryProtected]);
+
+  const themeText = config.theme === Theme.Light ? "☼" : "☽";
 
   return (
     <div className={styles.page}>
@@ -150,9 +171,15 @@ export function TeacherHistory() {
           </div>
           <div className="window-action-button">
             <IconButton
-              text="Back"
+              icon={
+                <span className={styles.themeGlyph} aria-hidden="true">
+                  {themeText}
+                </span>
+              }
               bordered
-              onClick={() => navigate(Path.Auth)}
+              title={Locale.Settings.Theme}
+              onClick={nextTheme}
+              className={styles.themeButton}
             />
           </div>
           <div className="window-action-button">
@@ -170,24 +197,28 @@ export function TeacherHistory() {
         </div>
       </header>
 
-      <section className={styles.authArea}>
-        <div className={styles.login}>
-          <input
-            type="password"
-            placeholder="Teacher password"
-            value={teacherCode}
-            onChange={(event) => setTeacherCode(event.currentTarget.value)}
-            onKeyDown={(event) => event.key === "Enter" && loadList()}
-          />
-          <IconButton
-            type="primary"
-            text={loading ? "Loading..." : "Load History"}
-            disabled={!teacherCode || loading}
-            onClick={loadList}
-          />
-        </div>
-        <span className={styles.feedback}>{message}</span>
-      </section>
+      {teacherHistoryProtected ? (
+        <section className={styles.authArea}>
+          <div className={styles.login}>
+            <input
+              type="password"
+              placeholder="Teacher password"
+              value={teacherCode}
+              onChange={(event) => setTeacherCode(event.currentTarget.value)}
+              onKeyDown={(event) => event.key === "Enter" && loadList()}
+            />
+            <IconButton
+              type="primary"
+              text={loading ? "Loading..." : "Load History"}
+              disabled={!teacherCode || loading}
+              onClick={loadList}
+            />
+          </div>
+          {message && <span className={styles.feedback}>{message}</span>}
+        </section>
+      ) : message ? (
+        <div className={styles.openFeedback}>{message}</div>
+      ) : null}
 
       <main className={styles.content}>
         <aside className={styles.list}>
@@ -214,24 +245,26 @@ export function TeacherHistory() {
         <article className={styles.transcript}>
           {selected ? (
             <>
-              <div className={styles.transcriptHeader}>
-                <h2>
-                  {selected.studentName} ({selected.studentId})
-                </h2>
-                <IconButton
-                  text="Download Markdown"
-                  bordered
-                  onClick={() =>
-                    downloadAs(
-                      buildMarkdown(selected),
-                      `${selected.studentId}-conversation.md`,
-                    )
-                  }
-                />
+              <div className={styles.transcriptSummary}>
+                <div className={styles.transcriptHeader}>
+                  <h2>
+                    {selected.studentName} ({selected.studentId})
+                  </h2>
+                  <IconButton
+                    text="Download Markdown"
+                    bordered
+                    onClick={() =>
+                      downloadAs(
+                        buildMarkdown(selected),
+                        `${selected.studentId}-conversation.md`,
+                      )
+                    }
+                  />
+                </div>
+                <p className={styles.meta}>
+                  {selected.topic} | Updated {selected.updatedAt}
+                </p>
               </div>
-              <p className={styles.meta}>
-                {selected.topic} | Updated {selected.updatedAt}
-              </p>
               {selected.messages.map((chatMessage) => (
                 <div
                   key={chatMessage.id}

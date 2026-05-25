@@ -15,6 +15,7 @@ const DANGER_CONFIG = {
   customModels: serverConfig.customModels,
   defaultModel: serverConfig.defaultModel,
   enableModelSelector: serverConfig.enableModelSelector,
+  teacherHistoryProtected: !!process.env.TEACHER_HISTORY_CODE,
 };
 
 declare global {
