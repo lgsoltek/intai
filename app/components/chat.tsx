@@ -227,7 +227,7 @@ function ClearContextDivider() {
 function ChatAction(props: {
   text: string;
   icon: JSX.Element;
-  onClick: () => void;
+  onClick: (event: React.MouseEvent<HTMLDivElement>) => void;
 }) {
   const iconRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
@@ -250,8 +250,8 @@ function ChatAction(props: {
   return (
     <div
       className={`${styles["chat-input-action"]} clickable`}
-      onClick={() => {
-        props.onClick();
+      onClick={(event) => {
+        props.onClick(event);
         setTimeout(updateWidth, 1);
       }}
       onMouseEnter={updateWidth}
@@ -347,6 +347,8 @@ export function ChatActions(props: {
     return model?.displayName ?? currentModel;
   }, [models, currentModel, currentProviderId]);
   const [showModelSelector, setShowModelSelector] = useState(false);
+  const [modelSelectorAnchor, setModelSelectorAnchor] =
+    useState<HTMLDivElement | null>(null);
   const [showUploadImage, setShowUploadImage] = useState(false);
 
   useEffect(() => {
@@ -400,7 +402,10 @@ export function ChatActions(props: {
         />
       )}
       <ChatAction
-        onClick={() => setShowModelSelector(true)}
+        onClick={(event) => {
+          setModelSelectorAnchor(event.currentTarget);
+          setShowModelSelector(true);
+        }}
         text={`${currentModelName} (${currentProviderId})`}
         icon={<RobotIcon />}
       />
@@ -408,6 +413,7 @@ export function ChatActions(props: {
       {showModelSelector && (
         <Selector
           variant="composer-drawer"
+          anchor={modelSelectorAnchor}
           defaultSelectedValue={`${currentProviderId}@${currentModel}`}
           items={models.map((m) => ({
             title: `${m.displayName || m.name}${

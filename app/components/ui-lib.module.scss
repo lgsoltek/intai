@@ -385,17 +385,17 @@
 
   .selector-content {
     position: fixed;
-    left: calc(var(--sidebar-width) + 46px);
-    bottom: 174px;
-    width: min(460px, calc(var(--window-content-width) - 72px));
-    max-height: 38vh;
+    left: var(--selector-left, calc(var(--sidebar-width) + 46px));
+    bottom: var(--selector-bottom, 174px);
+    width: min(var(--selector-width, 460px), calc(100vw - 32px));
+    max-height: var(--selector-max-height, 38vh);
     margin-bottom: 0;
     animation: slide-in-from-bottom 0.22s ease;
     pointer-events: auto;
     filter: drop-shadow(0 16px 30px rgba(22, 40, 44, 0.18));
 
     .list {
-      max-height: 38vh;
+      max-height: var(--selector-max-height, 38vh);
       border-radius: 24px;
       border-color: rgba(44, 116, 120, 0.2);
       background: var(--surface-panel-gradient);
