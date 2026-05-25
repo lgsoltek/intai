@@ -12,6 +12,9 @@ const serverConfig = getServerSideConfig();
 export const metadata: Metadata = {
   title: "TAPE.LLM",
   description: "Pour améliorer votre traduction.",
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+  },
   appleWebApp: {
     title: "TAPE.LLM",
     statusBarStyle: "default",
