@@ -1,11 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiPath, Path } from "../constant";
+import Locale from "../locales";
+import MaxIcon from "../icons/max.svg";
+import { useAppConfig } from "../store";
 import { downloadAs } from "../utils";
 import { IconButton } from "./button";
 import styles from "./teacher-history.module.scss";
+
+const Markdown = dynamic(async () => (await import("./markdown")).Markdown);
 
 type ConversationListItem = {
   pathname: string;
@@ -49,19 +55,30 @@ function buildMarkdown(conversation: Conversation) {
 
 export function TeacherHistory() {
   const navigate = useNavigate();
+  const config = useAppConfig();
   const [teacherCode, setTeacherCode] = useState("");
   const [items, setItems] = useState<ConversationListItem[]>([]);
   const [selected, setSelected] = useState<Conversation>();
+  const [selectedPathname, setSelectedPathname] = useState("");
   const [message, setMessage] = useState(
     "Enter the teacher password to load saved conversations.",
   );
   const [loading, setLoading] = useState(false);
+  const fontSize = config.fontSize;
 
   const headers = { "x-teacher-history-code": teacherCode };
+
+  function updateFontSize(delta: number) {
+    config.update((appConfig) => {
+      const current = appConfig.fontSize ?? 14;
+      appConfig.fontSize = Math.max(12, Math.min(40, current + delta));
+    });
+  }
 
   async function loadList() {
     setLoading(true);
     setSelected(undefined);
+    setSelectedPathname("");
     try {
       const response = await fetch(`${ApiPath.Conversations}/teacher/list`, {
         headers,
@@ -99,6 +116,7 @@ export function TeacherHistory() {
         return;
       }
       setSelected((await response.json()) as Conversation);
+      setSelectedPathname(item.pathname);
     } finally {
       setLoading(false);
     }
@@ -106,36 +124,88 @@ export function TeacherHistory() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <div>
-          <h1>Conversation History</h1>
-          <p>Teacher view for saved test conversations</p>
+      <header className={`window-header ${styles.header}`}>
+        <div className="window-header-title">
+          <div className="window-header-main-title">Conversation History</div>
+          <div className="window-header-sub-title">
+            Teacher view for saved test conversations
+          </div>
         </div>
-        <IconButton text="Back" bordered onClick={() => navigate(Path.Auth)} />
+        <div className="window-actions">
+          <div className={`window-action-button ${styles.fontSizeGroup}`}>
+            <IconButton
+              text="A-"
+              title={Locale.Settings.FontSize.Title}
+              onClick={() => updateFontSize(-1)}
+              className={styles.fontSizeButton}
+              bordered
+            />
+            <IconButton
+              text="A+"
+              title={Locale.Settings.FontSize.Title}
+              onClick={() => updateFontSize(1)}
+              className={styles.fontSizeButton}
+              bordered
+            />
+          </div>
+          <div className="window-action-button">
+            <IconButton
+              text="Back"
+              bordered
+              onClick={() => navigate(Path.Auth)}
+            />
+          </div>
+          <div className="window-action-button">
+            <IconButton
+              icon={<MaxIcon />}
+              bordered
+              title={Locale.Settings.TightBorder}
+              onClick={() => {
+                config.update((appConfig) => {
+                  appConfig.tightBorder = !appConfig.tightBorder;
+                });
+              }}
+            />
+          </div>
+        </div>
       </header>
 
-      <section className={styles.login}>
-        <input
-          type="password"
-          placeholder="Teacher password"
-          value={teacherCode}
-          onChange={(event) => setTeacherCode(event.currentTarget.value)}
-          onKeyDown={(event) => event.key === "Enter" && loadList()}
-        />
-        <IconButton
-          type="primary"
-          text={loading ? "Loading..." : "Load History"}
-          disabled={!teacherCode || loading}
-          onClick={loadList}
-        />
-        <span>{message}</span>
+      <section className={styles.authArea}>
+        <div className={styles.login}>
+          <input
+            type="password"
+            placeholder="Teacher password"
+            value={teacherCode}
+            onChange={(event) => setTeacherCode(event.currentTarget.value)}
+            onKeyDown={(event) => event.key === "Enter" && loadList()}
+          />
+          <IconButton
+            type="primary"
+            text={loading ? "Loading..." : "Load History"}
+            disabled={!teacherCode || loading}
+            onClick={loadList}
+          />
+        </div>
+        <span className={styles.feedback}>{message}</span>
       </section>
 
       <main className={styles.content}>
         <aside className={styles.list}>
+          <div className={styles.listHeader}>
+            <strong>Saved Conversations</strong>
+            <span>{items.length}</span>
+          </div>
           {items.map((item) => (
-            <button key={item.pathname} onClick={() => openConversation(item)}>
-              <strong>{item.pathname.split("/").at(-2)}</strong>
+            <button
+              className={`${styles.listCard} ${
+                selectedPathname === item.pathname ? styles.listCardActive : ""
+              }`}
+              key={item.pathname}
+              onClick={() => openConversation(item)}
+            >
+              <strong className={styles.studentPill}>
+                {item.pathname.split("/").at(-2)}
+              </strong>
               <span>{new Date(item.updatedAt).toLocaleString()}</span>
             </button>
           ))}
@@ -163,12 +233,30 @@ export function TeacherHistory() {
                 {selected.topic} | Updated {selected.updatedAt}
               </p>
               {selected.messages.map((chatMessage) => (
-                <div key={chatMessage.id} className={styles.message}>
-                  <strong>
-                    {chatMessage.role === "user" ? "Student" : "Assistant"}
-                  </strong>
-                  <small>{chatMessage.date}</small>
-                  <pre>{messageText(chatMessage)}</pre>
+                <div
+                  key={chatMessage.id}
+                  className={`${styles.message} ${
+                    chatMessage.role === "user" ? styles.messageUser : ""
+                  }`}
+                >
+                  <div className={styles.messageHeader}>
+                    <strong
+                      className={`${styles.speakerPill} ${
+                        chatMessage.role === "user"
+                          ? styles.speakerPillUser
+                          : styles.speakerPillLlm
+                      }`}
+                    >
+                      {chatMessage.role === "user" ? "Student" : "Assistant"}
+                    </strong>
+                    <small>{chatMessage.date}</small>
+                  </div>
+                  <div className={styles.messageBody}>
+                    <Markdown
+                      content={messageText(chatMessage)}
+                      fontSize={fontSize}
+                    />
+                  </div>
                 </div>
               ))}
             </>
