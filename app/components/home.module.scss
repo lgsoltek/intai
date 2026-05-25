@@ -147,14 +147,28 @@
 
 .sidebar-header {
   position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 52px;
   padding: 18px 0 16px;
 }
 
 .sidebar-logo {
   position: absolute;
   right: 0;
-  bottom: 15px;
-  opacity: 0.72;
+  top: 50%;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50%);
+  opacity: 0.82;
+
+  svg {
+    width: 52px;
+    height: 52px;
+  }
 }
 
 .sidebar-title {
@@ -371,6 +385,8 @@
   }
   .sidebar-logo {
     position: relative;
+    top: unset;
+    transform: none;
     display: flex;
     justify-content: center;
   }

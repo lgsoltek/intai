@@ -6,7 +6,7 @@ import { Path } from "../constant";
 import { useAccessStore } from "../store";
 import Locale from "../locales";
 
-import BotIcon from "../icons/bot.svg";
+import TapeLogoIcon from "../icons/tape-logo.svg";
 import { useEffect, useMemo, useState } from "react";
 import { getClientConfig } from "../config/client";
 import { loadStudents, StudentRecord } from "../utils/students";
@@ -56,7 +56,7 @@ export function AuthPage() {
   return (
     <div className={styles["auth-page"]}>
       <div className={`no-dark ${styles["auth-logo"]}`}>
-        <BotIcon />
+        <TapeLogoIcon />
       </div>
 
       <div className={styles["auth-title"]}>{Locale.Auth.Title}</div>

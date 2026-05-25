@@ -3,7 +3,7 @@ import { useEffect, useRef, useMemo } from "react";
 import styles from "./home.module.scss";
 
 import { IconButton } from "./button";
-import ChatGptIcon from "../icons/chatgpt.svg";
+import TapeLogoIcon from "../icons/tape-logo.svg";
 import DragIcon from "../icons/drag.svg";
 
 import Locale, { changeLang, getLang, Lang } from "../locales";
@@ -155,7 +155,7 @@ export function SideBar(props: { className?: string }) {
           TAPE.LLM
         </div>
         <div className={styles["sidebar-logo"] + " no-dark"}>
-          <ChatGptIcon />
+          <TapeLogoIcon />
         </div>
       </div>
 
@@ -163,9 +163,7 @@ export function SideBar(props: { className?: string }) {
         <div className={styles["sidebar-sub-title"]}>
           Adapted by XIE ©2026.
         </div>
-        <div className={styles["sidebar-sub-title"]}>
-          Based on ChatGPT-Next-Web.
-        </div>
+        <div className={styles["sidebar-sub-title"]}>Based on NextChat.</div>
       </div>
 
       <div className={styles["student-card"]}>
