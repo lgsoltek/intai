@@ -12,7 +12,8 @@
   --second: #eef0f8;
   --hover-color: #f2f3fa;
   --bar-color: rgba(0, 0, 0, 0.1);
-  --theme-color: var(--gray);
+  --page-background-color: #e4e7f3;
+  --theme-color: var(--page-background-color);
   --accent: #c987b5;
   --accent-soft: #f8eaf3;
   --surface: rgba(252, 251, 255, 0.88);
@@ -70,7 +71,8 @@
 
   --border-in-light: 1px solid rgba(235, 234, 255, 0.16);
 
-  --theme-color: var(--gray);
+  --page-background-color: #20243b;
+  --theme-color: var(--page-background-color);
   --shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
   --card-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
   --button-shadow: 0 12px 26px rgba(0, 0, 0, 0.24);
@@ -133,6 +135,7 @@ html {
 
 body {
   background: var(--page-gradient);
+  background-color: var(--page-background-color);
   color: var(--black);
   font-size: 16px;
   margin: 0;
@@ -145,10 +148,6 @@ body {
   user-select: none;
   touch-action: pan-x pan-y;
   overflow: hidden;
-
-  @media only screen and (max-width: 600px) {
-    background: var(--page-gradient);
-  }
 
   *:focus-visible {
     outline: 2px solid var(--focus-ring);
