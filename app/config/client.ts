@@ -3,7 +3,15 @@ import { BuildConfig, getBuildConfig } from "./build";
 export function getClientConfig() {
   if (typeof document !== "undefined") {
     // client side
-    return JSON.parse(queryMeta("config")) as BuildConfig;
+    const serializedConfig = queryMeta("config");
+    if (!serializedConfig.trim()) return;
+
+    try {
+      return JSON.parse(serializedConfig) as BuildConfig;
+    } catch (error) {
+      console.error("[Config] could not parse embedded client config", error);
+      return;
+    }
   }
 
   if (typeof process !== "undefined") {

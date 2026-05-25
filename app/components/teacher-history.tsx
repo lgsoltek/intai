@@ -31,6 +31,8 @@ const sortOptions: Array<{ value: SortOption; label: string }> = [
   { value: "studentName", label: "Name (Pinyin)" },
 ];
 
+const historyTimeZone = "Asia/Shanghai";
+
 function RefreshGlyph() {
   return (
     <svg className={styles.actionGlyph} viewBox="0 0 24 24">
@@ -126,7 +128,16 @@ function buildMarkdown(conversation: Conversation) {
 }
 
 function formatTimestamp(timestamp: string) {
-  return new Date(timestamp).toLocaleString();
+  return new Date(timestamp).toLocaleString(undefined, {
+    timeZone: historyTimeZone,
+    hour12: false,
+  });
+}
+
+function formatDateGroup(timestamp: string) {
+  return new Date(timestamp).toLocaleDateString(undefined, {
+    timeZone: historyTimeZone,
+  });
 }
 
 export function TeacherHistory() {
@@ -306,9 +317,11 @@ export function TeacherHistory() {
         );
       const timestamp = new Date(item.updatedAt).getTime();
       const afterStart =
-        !startDate || timestamp >= new Date(`${startDate}T00:00:00`).getTime();
+        !startDate ||
+        timestamp >= new Date(`${startDate}T00:00:00+08:00`).getTime();
       const beforeEnd =
-        !endDate || timestamp <= new Date(`${endDate}T23:59:59.999`).getTime();
+        !endDate ||
+        timestamp <= new Date(`${endDate}T23:59:59.999+08:00`).getTime();
       return matchesQuery && afterStart && beforeEnd;
     });
 
@@ -338,7 +351,7 @@ export function TeacherHistory() {
           ? item.nameInitial
           : sortBy === "studentId"
           ? item.studentId
-          : new Date(item.updatedAt).toLocaleDateString();
+          : formatDateGroup(item.updatedAt);
       const previous = groups.at(-1);
       if (previous?.label === label) {
         previous.items.push(item);
@@ -573,7 +586,9 @@ export function TeacherHistory() {
                     </h2>
                     <p className={styles.meta}>
                       <span>{selected.topic}</span>
-                      <span>Updated {formatTimestamp(selected.updatedAt)}</span>
+                      <span>
+                        Updated {formatTimestamp(selected.updatedAt)} (UTC+8)
+                      </span>
                     </p>
                   </div>
                   <div className={styles.transcriptActions}>

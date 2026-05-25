@@ -132,7 +132,7 @@
 .toolbarActions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 7px;
 }
 
@@ -209,7 +209,8 @@
   position: absolute;
   z-index: 20;
   top: calc(100% + 8px);
-  right: -42px;
+  left: 50%;
+  transform: translateX(-50%);
   width: 205px;
   box-sizing: border-box;
   padding: 12px;
