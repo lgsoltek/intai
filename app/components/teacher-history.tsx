@@ -158,6 +158,30 @@ function formatMessageTimestamp(timestamp: string) {
     : formatTimestamp(timestamp);
 }
 
+function formatDownloadTimestamp(timestamp: string) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "unknown-time";
+
+  const parts = new Intl.DateTimeFormat("en", {
+    timeZone: historyTimeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    hourCycle: "h23",
+  })
+    .formatToParts(date)
+    .reduce<Record<string, string>>((values, part) => {
+      values[part.type] = part.value;
+      return values;
+    }, {});
+
+  return `${parts.year}${parts.month}${parts.day}-${parts.hour}${parts.minute}${parts.second}`;
+}
+
 export function TeacherHistory() {
   const config = useAppConfig();
   const accessStore = useAccessStore();
@@ -707,7 +731,11 @@ export function TeacherHistory() {
                       onClick={() =>
                         downloadAs(
                           buildMarkdown(selected),
-                          `${selected.studentId}-conversation.md`,
+                          `${
+                            selected.studentId
+                          }-conversation-${formatDownloadTimestamp(
+                            selected.updatedAt,
+                          )}.md`,
                         )
                       }
                     />
