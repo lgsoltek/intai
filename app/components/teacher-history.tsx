@@ -32,6 +32,12 @@ const sortOptions: Array<{ value: SortOption; label: string }> = [
 ];
 
 const historyTimeZone = "Asia/Shanghai";
+const transientMessages = new Set([
+  "Showing recent 15 days.",
+  "Conversations refreshed.",
+  "Date filter applied.",
+  "Conversation deleted.",
+]);
 
 function RefreshGlyph() {
   return (
@@ -351,6 +357,13 @@ export function TeacherHistory() {
   }, [teacherHistoryProtected]);
 
   useEffect(() => {
+    if (!transientMessages.has(message)) return;
+
+    const timeout = window.setTimeout(() => setMessage(""), 2600);
+    return () => window.clearTimeout(timeout);
+  }, [message]);
+
+  useEffect(() => {
     function dismissPopovers(event: PointerEvent) {
       const target = event.target as Node;
       if (!sortMenuRef.current?.contains(target)) {
@@ -428,6 +441,7 @@ export function TeacherHistory() {
       : endDate
       ? `Until ${endDate}`
       : "Recent 15 days";
+  const messageIsTransient = transientMessages.has(message);
 
   return (
     <div className={styles.page}>
@@ -513,10 +527,29 @@ export function TeacherHistory() {
               onClick={() => loadList()}
             />
           </div>
-          {message && <span className={styles.feedback}>{message}</span>}
         </section>
-      ) : message ? (
-        <div className={styles.openFeedback}>{message}</div>
+      ) : null}
+      {message ? (
+        <div
+          className={`${styles.openFeedback} ${
+            messageIsTransient
+              ? styles.successFeedback
+              : styles.attentionFeedback
+          }`}
+          role={messageIsTransient ? "status" : "alert"}
+          aria-live={messageIsTransient ? "polite" : "assertive"}
+        >
+          <span>{message}</span>
+          {!messageIsTransient && (
+            <button
+              className={styles.dismissFeedback}
+              aria-label="Dismiss message"
+              onClick={() => setMessage("")}
+            >
+              &times;
+            </button>
+          )}
+        </div>
       ) : null}
 
       <main className={styles.content}>
