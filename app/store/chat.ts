@@ -380,18 +380,6 @@ export const useChatStore = createPersistStore(
         });
         saveCurrentConversation();
 
-        if (userContent.trim() === "billius" && attachImages.length === 0) {
-          const SYSTEM_PROMPT_CONTENT = require("./systemPrompt");
-          botMessage.streaming = false;
-          botMessage.content = SYSTEM_PROMPT_CONTENT;
-          get().onNewMessage(botMessage);
-          get().updateCurrentSession((session) => {
-            session.messages = session.messages.concat();
-          });
-          saveCurrentConversation();
-          return;
-        }
-
         const api: ClientApi = getClientApi(modelConfig.providerName);
         // make request
         api.llm.chat({
@@ -467,32 +455,8 @@ export const useChatStore = createPersistStore(
         const clearContextIndex = session.clearContextIndex ?? 0;
         const messages = session.messages.slice();
         const totalMessageCount = session.messages.length;
-        const SYSTEM_PROMPT_CONTENT = require("./systemPrompt");
-
         // in-context prompts
         const contextPrompts = session.mask.context.slice();
-
-        // system prompts, to get close to OpenAI Web ChatGPT
-        const shouldInjectSystemPrompts =
-          modelConfig.enableInjectSystemPrompts &&
-          session.mask.modelConfig.model.startsWith("gpt-");
-
-        var systemPrompts: ChatMessage[] = [];
-        systemPrompts = shouldInjectSystemPrompts
-          ? [
-              createMessage({
-                role: "system",
-                content: SYSTEM_PROMPT_CONTENT,
-              }),
-            ]
-          : [];
-
-        if (shouldInjectSystemPrompts) {
-          console.log(
-            "[Global System Prompt] ",
-            systemPrompts.at(0)?.content ?? "empty",
-          );
-        }
         const memoryPrompt = get().getMemoryPrompt();
         // long term memory
         const shouldSendLongTermMemory =
@@ -511,11 +475,11 @@ export const useChatStore = createPersistStore(
         );
 
         // lets concat send messages, including 4 parts:
-        // 0. system prompt: to get close to OpenAI Web ChatGPT
-        // 1. long term memory: summarized memory messages
-        // 2. pre-defined in-context prompts
-        // 3. short term memory: latest n messages
-        // 4. newest input message
+        // 0. long term memory: summarized memory messages
+        // 1. pre-defined in-context prompts
+        // 2. short term memory: latest n messages
+        // 3. newest input message
+        // The authoritative tutor prompt is appended by the server proxy.
         const memoryStartIndex = shouldSendLongTermMemory
           ? Math.min(longTermMemoryStartIndex, shortTermMemoryStartIndex)
           : shortTermMemoryStartIndex;
@@ -537,7 +501,6 @@ export const useChatStore = createPersistStore(
         }
         // concat all messages
         const recentMessages = [
-          ...systemPrompts,
           ...longTermMemoryPrompts,
           ...contextPrompts,
           ...reversedRecentMessages.reverse(),

@@ -50,6 +50,15 @@ function RefreshGlyph() {
   );
 }
 
+function PromptGlyph() {
+  return (
+    <svg className={styles.actionGlyph} viewBox="0 0 24 24">
+      <path d="M6 3h9l3 3v15H6z" />
+      <path d="M15 3v4h4M9 11h6M9 15h6" />
+    </svg>
+  );
+}
+
 function CalendarGlyph() {
   return (
     <svg className={styles.actionGlyph} viewBox="0 0 24 24">
@@ -195,6 +204,7 @@ export function TeacherHistory() {
   const [items, setItems] = useState<ConversationListItem[]>([]);
   const [selected, setSelected] = useState<Conversation>();
   const [selectedPathname, setSelectedPathname] = useState("");
+  const [activePrompt, setActivePrompt] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -283,6 +293,7 @@ export function TeacherHistory() {
 
   async function openConversation(item: ConversationListItem) {
     setConfirmDelete(false);
+    setActivePrompt("");
     if (isMobileScreen) {
       setMobileListOpen(false);
     }
@@ -310,6 +321,43 @@ export function TeacherHistory() {
       setMessage("");
     } catch {
       setMessage("Could not open that conversation.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function openActivePrompt() {
+    setLoading(true);
+    try {
+      const response = await fetch(`${ApiPath.Conversations}/teacher/prompt`, {
+        headers,
+      });
+      if (!response.ok) {
+        if (response.status === 503) {
+          setMessage("Set TEACHER_HISTORY_CODE to view the active prompt.");
+          return;
+        }
+        setMessage(
+          teacherHistoryProtected
+            ? "The password was not accepted."
+            : "Could not load the active prompt.",
+        );
+        return;
+      }
+      const data = await readJsonResponse<{ prompt?: string }>(response);
+      if (!data || typeof data.prompt !== "string") {
+        setMessage("Could not read the active prompt.");
+        return;
+      }
+      setSelected(undefined);
+      setSelectedPathname("");
+      setActivePrompt(data.prompt);
+      setMessage("");
+      if (isMobileScreen) {
+        setMobileListOpen(false);
+      }
+    } catch {
+      setMessage("Could not load the active prompt.");
     } finally {
       setLoading(false);
     }
@@ -677,6 +725,14 @@ export function TeacherHistory() {
                 )}
               </div>
               <IconButton
+                icon={<PromptGlyph />}
+                bordered
+                title="View active tutor prompt"
+                disabled={loading || (teacherHistoryProtected && !teacherCode)}
+                onClick={openActivePrompt}
+                className={styles.toolButton}
+              />
+              <IconButton
                 icon={<RefreshGlyph />}
                 bordered
                 title="Refresh conversations"
@@ -723,7 +779,27 @@ export function TeacherHistory() {
         </aside>
 
         <article className={styles.transcript}>
-          {selected ? (
+          {activePrompt ? (
+            <>
+              <div className={styles.transcriptSummary}>
+                <div className={styles.transcriptHeader}>
+                  <div className={styles.transcriptIdentity}>
+                    <h2>Active Tutor Prompt</h2>
+                    <p className={styles.meta}>
+                      <span>Loaded from server-side configuration</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className={styles.transcriptMessages}>
+                <div className={styles.message}>
+                  <div className={styles.messageBody}>
+                    <Markdown content={activePrompt} fontSize={fontSize} />
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : selected ? (
             <>
               <div className={styles.transcriptSummary}>
                 <div className={styles.transcriptHeader}>

@@ -31,7 +31,7 @@ declare global {
 
       // custom template for preprocessing user input
       DEFAULT_INPUT_TEMPLATE?: string;
-      NEXT_PUBLIC_SYSTEM_PROMPT?: string;
+      TUTOR_SYSTEM_PROMPT?: string;
 
       BLOB_READ_WRITE_TOKEN?: string;
       TEACHER_HISTORY_CODE?: string;

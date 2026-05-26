@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSideConfig } from "../config/server";
-import { OPENAI_BASE_URL, ServiceProvider } from "../constant";
+import { OPENAI_BASE_URL, OpenaiPath, ServiceProvider } from "../constant";
 import { isModelAvailableInServer } from "../utils/model";
 import { cloudflareAIGatewayUrl } from "../utils/cloudflare";
+import { getTutorSystemPrompt } from "./openai/tutor-system-prompt";
 
 const serverConfig = getServerSideConfig();
 
@@ -52,18 +53,34 @@ export async function requestOpenai(req: NextRequest) {
     signal: controller.signal,
   };
 
+  const isChatCompletion = path === OpenaiPath.ChatPath;
+
   // Teacher-controlled deployments can force one model from DEFAULT_MODEL.
   // This keeps students from bypassing the hidden model selector with local state edits.
-  if ((serverConfig.customModels || serverConfig.defaultModel) && req.body) {
+  if (
+    (isChatCompletion ||
+      serverConfig.customModels ||
+      serverConfig.defaultModel) &&
+    req.body
+  ) {
     try {
       const clonedBody = await req.text();
-      const jsonBody = JSON.parse(clonedBody) as { model?: string };
+      const jsonBody = JSON.parse(clonedBody) as {
+        model?: string;
+        messages?: Array<{ role: string; content: unknown }>;
+      };
+
+      if (isChatCompletion && Array.isArray(jsonBody.messages)) {
+        jsonBody.messages = [
+          { role: "system", content: getTutorSystemPrompt() },
+          ...jsonBody.messages,
+        ];
+      }
+
       if (serverConfig.defaultModel) {
         jsonBody.model = serverConfig.defaultModel;
-        fetchOptions.body = JSON.stringify(jsonBody);
-      } else {
-        fetchOptions.body = clonedBody;
       }
+      fetchOptions.body = JSON.stringify(jsonBody);
 
       // not undefined and is false
       if (
@@ -85,7 +102,7 @@ export async function requestOpenai(req: NextRequest) {
         );
       }
     } catch (e) {
-      console.error("[OpenAI] gpt4 filter", e);
+      console.error("[OpenAI] request policy injection", e);
     }
   }
 
