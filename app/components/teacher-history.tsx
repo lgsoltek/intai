@@ -32,6 +32,7 @@ const sortOptions: Array<{ value: SortOption; label: string }> = [
 ];
 
 const historyTimeZone = "Asia/Shanghai";
+const teacherCodeSessionKey = "teacher-history-code";
 const transientMessages = new Set([
   "Showing recent 15 days.",
   "Conversations refreshed.",
@@ -110,6 +111,8 @@ type Conversation = {
   updatedAt: string;
   messages: ConversationMessage[];
 };
+
+type TeacherAuthState = "checking" | "locked" | "unlocked";
 
 async function readJsonResponse<T>(response: Response): Promise<T | null> {
   const text = await response.text();
@@ -201,6 +204,7 @@ export function TeacherHistory() {
   const config = useAppConfig();
   const accessStore = useAccessStore();
   const [teacherCode, setTeacherCode] = useState("");
+  const [authState, setAuthState] = useState<TeacherAuthState>("checking");
   const [items, setItems] = useState<ConversationListItem[]>([]);
   const [selected, setSelected] = useState<Conversation>();
   const [selectedPathname, setSelectedPathname] = useState("");
@@ -224,7 +228,9 @@ export function TeacherHistory() {
   const isMobileScreen = useMobileScreen();
   const teacherHistoryProtected = accessStore.teacherHistoryProtected !== false;
 
-  const headers = { "x-teacher-history-code": teacherCode };
+  function teacherHeaders(code = teacherCode) {
+    return { "x-teacher-history-code": code };
+  }
 
   function nextTheme() {
     const themes = [Theme.Light, Theme.Dark];
@@ -242,7 +248,44 @@ export function TeacherHistory() {
     });
   }
 
-  async function loadList(successMessage = "", range = { startDate, endDate }) {
+  function lockTeacherHistory() {
+    window.sessionStorage.removeItem(teacherCodeSessionKey);
+    setTeacherCode("");
+    setAuthState("locked");
+    setItems([]);
+    setSelected(undefined);
+    setSelectedPathname("");
+    setActivePrompt("");
+  }
+
+  async function unlockTeacherHistory(code: string) {
+    setLoading(true);
+    try {
+      const response = await fetch(`${ApiPath.Conversations}/teacher/auth`, {
+        headers: teacherHeaders(code),
+      });
+      if (!response.ok) {
+        lockTeacherHistory();
+        setMessage("The password was not accepted.");
+        return;
+      }
+      window.sessionStorage.setItem(teacherCodeSessionKey, code);
+      setTeacherCode(code);
+      setAuthState("unlocked");
+      setMessage("");
+      await loadList("", { startDate: "", endDate: "" }, code);
+    } catch {
+      lockTeacherHistory();
+      setMessage("Could not validate teacher access.");
+      setLoading(false);
+    }
+  }
+
+  async function loadList(
+    successMessage = "",
+    range = { startDate, endDate },
+    code = teacherCode,
+  ) {
     setLoading(true);
     try {
       const searchParams = new URLSearchParams();
@@ -251,19 +294,24 @@ export function TeacherHistory() {
       const query = searchParams.size ? `?${searchParams.toString()}` : "";
       const response = await fetch(
         `${ApiPath.Conversations}/teacher/list${query}`,
-        { headers },
+        { headers: teacherHeaders(code) },
       );
       if (!response.ok) {
-        setItems([]);
-        setSelected(undefined);
-        setSelectedPathname("");
+        if (response.status === 401 && teacherHistoryProtected) {
+          lockTeacherHistory();
+        }
         setMessage(
-          teacherHistoryProtected
+          response.status === 401 && teacherHistoryProtected
             ? "The password was not accepted."
             : "Could not load saved conversations.",
         );
         return;
       }
+      if (teacherHistoryProtected) {
+        window.sessionStorage.setItem(teacherCodeSessionKey, code);
+        setTeacherCode(code);
+      }
+      setAuthState("unlocked");
       const data = await readJsonResponse<{
         conversations: ConversationListItem[];
         isRecentWindow?: boolean;
@@ -303,9 +351,12 @@ export function TeacherHistory() {
         `${ApiPath.Conversations}/teacher/read?pathname=${encodeURIComponent(
           item.pathname,
         )}`,
-        { headers },
+        { headers: teacherHeaders() },
       );
       if (!response.ok) {
+        if (response.status === 401 && teacherHistoryProtected) {
+          lockTeacherHistory();
+        }
         setMessage("Could not open that conversation.");
         return;
       }
@@ -330,12 +381,15 @@ export function TeacherHistory() {
     setLoading(true);
     try {
       const response = await fetch(`${ApiPath.Conversations}/teacher/prompt`, {
-        headers,
+        headers: teacherHeaders(),
       });
       if (!response.ok) {
         if (response.status === 503) {
           setMessage("Set TEACHER_HISTORY_CODE to view the active prompt.");
           return;
+        }
+        if (response.status === 401 && teacherHistoryProtected) {
+          lockTeacherHistory();
         }
         setMessage(
           teacherHistoryProtected
@@ -376,9 +430,12 @@ export function TeacherHistory() {
         `${ApiPath.Conversations}/teacher/delete?pathname=${encodeURIComponent(
           selectedPathname,
         )}`,
-        { method: "DELETE", headers },
+        { method: "DELETE", headers: teacherHeaders() },
       );
       if (!response.ok) {
+        if (response.status === 401 && teacherHistoryProtected) {
+          lockTeacherHistory();
+        }
         setMessage("Could not delete that conversation.");
         return;
       }
@@ -398,9 +455,18 @@ export function TeacherHistory() {
 
   useEffect(() => {
     if (!teacherHistoryProtected) {
-      loadList();
+      setAuthState("unlocked");
+      loadList("", { startDate: "", endDate: "" }, "");
+      return;
     }
-    // loadList intentionally runs once when password protection is disabled.
+    const sessionCode = window.sessionStorage.getItem(teacherCodeSessionKey);
+    if (sessionCode) {
+      setTeacherCode(sessionCode);
+      unlockTeacherHistory(sessionCode);
+    } else {
+      setAuthState("locked");
+    }
+    // Load once when access configuration is resolved or the page is restored.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teacherHistoryProtected]);
 
@@ -490,6 +556,49 @@ export function TeacherHistory() {
       ? `Until ${endDate}`
       : "Recent 15 days";
   const messageIsTransient = transientMessages.has(message);
+  const isUnlocked = authState === "unlocked";
+
+  if (authState !== "unlocked") {
+    return (
+      <div className={styles.page}>
+        <section className={styles.lockedPage}>
+          <div className={styles.loginCard}>
+            <h1>Conversation History</h1>
+            {authState === "checking" ? (
+              <p>Checking teacher access...</p>
+            ) : (
+              <>
+                <p>Enter the teacher password to continue.</p>
+                <input
+                  type="password"
+                  placeholder="Teacher password"
+                  value={teacherCode}
+                  autoFocus
+                  onChange={(event) =>
+                    setTeacherCode(event.currentTarget.value)
+                  }
+                  onKeyDown={(event) =>
+                    event.key === "Enter" && unlockTeacherHistory(teacherCode)
+                  }
+                />
+                <IconButton
+                  type="primary"
+                  text={loading ? "Checking..." : "Unlock"}
+                  disabled={!teacherCode || loading}
+                  onClick={() => unlockTeacherHistory(teacherCode)}
+                />
+                {message ? (
+                  <p className={styles.loginError} role="alert">
+                    {message}
+                  </p>
+                ) : null}
+              </>
+            )}
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -519,7 +628,7 @@ export function TeacherHistory() {
               icon={<PromptGlyph />}
               bordered
               title="View active tutor prompt"
-              disabled={loading || (teacherHistoryProtected && !teacherCode)}
+              disabled={loading || !isUnlocked}
               onClick={openActivePrompt}
               className={styles.themeButton}
             />
@@ -568,25 +677,6 @@ export function TeacherHistory() {
         </div>
       </header>
 
-      {teacherHistoryProtected ? (
-        <section className={styles.authArea}>
-          <div className={styles.login}>
-            <input
-              type="password"
-              placeholder="Teacher password"
-              value={teacherCode}
-              onChange={(event) => setTeacherCode(event.currentTarget.value)}
-              onKeyDown={(event) => event.key === "Enter" && loadList()}
-            />
-            <IconButton
-              type="primary"
-              text={loading ? "Loading..." : "Load History"}
-              disabled={!teacherCode || loading}
-              onClick={() => loadList()}
-            />
-          </div>
-        </section>
-      ) : null}
       {message ? (
         <div
           className={`${styles.openFeedback} ${
@@ -668,7 +758,7 @@ export function TeacherHistory() {
                 icon={<RefreshGlyph />}
                 bordered
                 title="Refresh conversations"
-                disabled={loading || (teacherHistoryProtected && !teacherCode)}
+                disabled={loading || !isUnlocked}
                 onClick={() => loadList("Conversations refreshed.")}
                 className={styles.toolButton}
               />
