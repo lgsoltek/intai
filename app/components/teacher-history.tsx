@@ -514,6 +514,16 @@ export function TeacherHistory() {
           </div>
         </div>
         <div className="window-actions">
+          <div className="window-action-button">
+            <IconButton
+              icon={<PromptGlyph />}
+              bordered
+              title="View active tutor prompt"
+              disabled={loading || (teacherHistoryProtected && !teacherCode)}
+              onClick={openActivePrompt}
+              className={styles.themeButton}
+            />
+          </div>
           <div className={`window-action-button ${styles.fontSizeGroup}`}>
             <IconButton
               text="A-"
@@ -724,14 +734,6 @@ export function TeacherHistory() {
                   </div>
                 )}
               </div>
-              <IconButton
-                icon={<PromptGlyph />}
-                bordered
-                title="View active tutor prompt"
-                disabled={loading || (teacherHistoryProtected && !teacherCode)}
-                onClick={openActivePrompt}
-                className={styles.toolButton}
-              />
               <IconButton
                 icon={<RefreshGlyph />}
                 bordered
