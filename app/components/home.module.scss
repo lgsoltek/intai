@@ -52,16 +52,11 @@
   transition: width ease 0.05s;
 
   .sidebar-header-bar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    column-gap: 16px;
-    row-gap: 5px;
+    display: block;
     margin-bottom: 20px;
 
-    .sidebar-sub-title {
-      flex: 1 1 112px;
-      min-width: 0;
+    .sidebar-sub-title + .sidebar-sub-title {
+      margin-top: 3px;
     }
 
     .sidebar-bar-button {
@@ -144,9 +139,7 @@
     display: block;
   }
 
-  .sidebar-header-bar {
-    flex-direction: column;
-    gap: 1px;
+  .sidebar .sidebar-header-bar {
     margin-bottom: 14px;
     line-height: 1.18;
 
@@ -408,8 +401,6 @@
   }
 
   .sidebar-header-bar {
-    flex-direction: column;
-    gap: 1px;
     line-height: 1.18;
 
     .sidebar-bar-button {
