@@ -323,6 +323,17 @@ export function TeacherHistory() {
         return;
       }
       setItems(data.conversations);
+      if (
+        selectedPathname &&
+        !data.conversations.some((item) => item.pathname === selectedPathname)
+      ) {
+        setSelected(undefined);
+        setSelectedPathname("");
+        setConfirmDelete(false);
+        if (isMobileScreen) {
+          setMobileListOpen(true);
+        }
+      }
       setMessage(
         data.conversations.length === 0
           ? data.isRecentWindow
