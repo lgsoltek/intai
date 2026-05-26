@@ -171,11 +171,24 @@
   }
 }
 
-.toolbarActions {
+.searchActions {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 7px;
+
+  .searchInput {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+.dateFilterRow {
+  display: block;
+}
+
+.dateMenu {
+  position: relative;
+  width: 100%;
 }
 
 .count {
@@ -238,12 +251,8 @@
   animation: historyPopoverInCentered 0.18s ease;
 }
 
-.dateMenu {
-  position: relative;
-}
-
 .dateButton {
-  min-width: 122px;
+  width: 100%;
   min-height: 36px;
   height: 36px;
   padding: 8px 10px;
@@ -763,7 +772,7 @@
   }
 
   .dateButton {
-    min-width: 130px;
+    width: 100%;
   }
 
   .datePopover {

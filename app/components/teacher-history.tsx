@@ -628,14 +628,52 @@ export function TeacherHistory() {
               <strong>Saved Conversations</strong>
               <span className={styles.count}>{visibleItems.length}</span>
             </div>
-            <input
-              className={styles.searchInput}
-              value={search}
-              onChange={(event) => setSearch(event.currentTarget.value)}
-              placeholder="Search name, ID or topic"
-              type="search"
-            />
-            <div className={styles.toolbarActions}>
+            <div className={styles.searchActions}>
+              <input
+                className={styles.searchInput}
+                value={search}
+                onChange={(event) => setSearch(event.currentTarget.value)}
+                placeholder="Search name, ID or topic"
+                type="search"
+              />
+              <div className={styles.sortMenu} ref={sortMenuRef}>
+                <IconButton
+                  icon={<SortGlyph />}
+                  bordered
+                  title={`Sort: ${activeSortLabel}`}
+                  onClick={() => setSortOpen((open) => !open)}
+                  className={styles.toolButton}
+                />
+                {sortOpen && (
+                  <div className={styles.sortPopover}>
+                    {sortOptions.map((option) => (
+                      <button
+                        className={`${styles.sortOption} ${
+                          option.value === sortBy ? styles.sortOptionActive : ""
+                        }`}
+                        key={option.value}
+                        onClick={() => {
+                          setSortBy(option.value);
+                          setSortOpen(false);
+                        }}
+                      >
+                        {option.label}
+                        {option.value === sortBy && <span>✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <IconButton
+                icon={<RefreshGlyph />}
+                bordered
+                title="Refresh conversations"
+                disabled={loading || (teacherHistoryProtected && !teacherCode)}
+                onClick={() => loadList("Conversations refreshed.")}
+                className={styles.toolButton}
+              />
+            </div>
+            <div className={styles.dateFilterRow}>
               <div className={styles.dateMenu} ref={dateMenuRef}>
                 <IconButton
                   icon={<CalendarGlyph />}
@@ -706,42 +744,6 @@ export function TeacherHistory() {
                   </div>
                 )}
               </div>
-              <div className={styles.sortMenu} ref={sortMenuRef}>
-                <IconButton
-                  icon={<SortGlyph />}
-                  bordered
-                  title={`Sort: ${activeSortLabel}`}
-                  onClick={() => setSortOpen((open) => !open)}
-                  className={styles.toolButton}
-                />
-                {sortOpen && (
-                  <div className={styles.sortPopover}>
-                    {sortOptions.map((option) => (
-                      <button
-                        className={`${styles.sortOption} ${
-                          option.value === sortBy ? styles.sortOptionActive : ""
-                        }`}
-                        key={option.value}
-                        onClick={() => {
-                          setSortBy(option.value);
-                          setSortOpen(false);
-                        }}
-                      >
-                        {option.label}
-                        {option.value === sortBy && <span>✓</span>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <IconButton
-                icon={<RefreshGlyph />}
-                bordered
-                title="Refresh conversations"
-                disabled={loading || (teacherHistoryProtected && !teacherCode)}
-                onClick={() => loadList("Conversations refreshed.")}
-                className={styles.toolButton}
-              />
             </div>
           </div>
           <div className={styles.listCards}>
