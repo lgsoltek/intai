@@ -73,7 +73,7 @@ const tw = {
       if (submitKey === String(SubmitKey.Enter)) {
         inputHints += "，Shift + Enter 鍵換行";
       }
-      return inputHints;
+      return inputHints + "。\n對話記錄會儲存，請勿傳送敏感資訊。";
     },
     Send: "傳送",
     Config: {

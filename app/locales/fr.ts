@@ -69,9 +69,12 @@ const fr: PartialLocaleType = {
     Input: (submitKey: string) => {
       var inputHints = `Appuyez sur ${submitKey} pour envoyer`;
       if (submitKey === String(SubmitKey.Enter)) {
-        inputHints += ", Shift + Enter pour insérer un saut de ligne";
+        inputHints += ", Maj + Entrée pour insérer un saut de ligne";
       }
-      return inputHints + ", / pour rechercher des prompts";
+      return (
+        inputHints +
+        ".\nLes conversations sont enregistrées. Ne partagez pas d'informations sensibles."
+      );
     },
     Send: "Envoyer",
     Config: {

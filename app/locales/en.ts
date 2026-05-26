@@ -83,9 +83,12 @@ const en: LocaleType = {
     Input: (submitKey: string) => {
       var inputHints = `${submitKey} to send`;
       if (submitKey === String(SubmitKey.Enter)) {
-        inputHints += ", Shift + Enter to wrap";
+        inputHints += ", Shift + Enter for a new line";
       }
-      return inputHints + ", / to search prompts, : to use commands";
+      return (
+        inputHints +
+        ".\nConversations are saved. Do not share sensitive information."
+      );
     },
     Send: "Send",
     Config: {
