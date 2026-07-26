@@ -101,6 +101,27 @@ function useDragSideBar() {
   };
 }
 
+function getHomepageUrl(currentUrl: string) {
+  const url = new URL(currentUrl);
+  const hostnameParts = url.hostname.split(".");
+  const isIpv4 = hostnameParts.every((part) => /^\d+$/.test(part));
+  const isLocalHostname =
+    url.hostname === "localhost" ||
+    url.hostname.includes(":") ||
+    isIpv4 ||
+    hostnameParts.length < 3;
+
+  if (!isLocalHostname) {
+    url.hostname = hostnameParts.slice(1).join(".");
+    url.port = "";
+  }
+
+  url.pathname = "/";
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+}
+
 export function SideBar(props: { className?: string }) {
   const chatStore = useChatStore();
   const config = useAppConfig();
@@ -155,7 +176,7 @@ export function SideBar(props: { className?: string }) {
           AssisTran
         </div>
         <div className={styles["sidebar-sub-title"]}>
-          Pour améliorer votre traduction.
+          vous assiste dans la traduction.
         </div>
         <div className={styles["sidebar-logo"] + " no-dark"}>
           <AssisTranIcon />
@@ -215,6 +236,18 @@ export function SideBar(props: { className?: string }) {
 
       <div className={styles["sidebar-tail"]}>
         <div className={styles["sidebar-actions"]}>
+          <div className={styles["sidebar-action"]}>
+            <IconButton
+              icon={
+                <span className={styles["homepage-glyph"]} aria-hidden="true" />
+              }
+              onClick={() => {
+                window.location.assign(getHomepageUrl(window.location.href));
+              }}
+              title="Homepage"
+              shadow
+            />
+          </div>
           <div className={styles["sidebar-action"]}>
             <Link to={pathname === Path.Settings ? Path.Home : Path.Settings}>
               <IconButton
