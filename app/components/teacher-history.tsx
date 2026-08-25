@@ -33,11 +33,13 @@ const sortOptions: Array<{ value: SortOption; label: string }> = [
 
 const historyTimeZone = "Asia/Shanghai";
 const teacherCodeSessionKey = "teacher-history-code";
+const batchExcludedStudentIds = new Set(["999999999", "123456789"]);
 const transientMessages = new Set([
   "Showing recent 15 days.",
   "Conversations refreshed.",
   "Date filter applied.",
   "Conversation deleted.",
+  "Conversation ZIP downloaded.",
 ]);
 
 function RefreshGlyph() {
@@ -388,6 +390,46 @@ export function TeacherHistory() {
     }
   }
 
+  async function downloadBatch() {
+    setLoading(true);
+    try {
+      const searchParams = new URLSearchParams();
+      if (startDate) searchParams.set("from", startDate);
+      if (endDate) searchParams.set("to", endDate);
+      const query = searchParams.size ? `?${searchParams.toString()}` : "";
+      const response = await fetch(
+        `${ApiPath.Conversations}/teacher/download${query}`,
+        { headers: teacherHeaders() },
+      );
+      if (!response.ok) {
+        if (response.status === 401 && teacherHistoryProtected) {
+          lockTeacherHistory();
+        }
+        const data = await readJsonResponse<{ message?: string }>(response);
+        setMessage(data?.message || "Could not download conversations.");
+        return;
+      }
+
+      const blob = await response.blob();
+      const disposition = response.headers.get("content-disposition") ?? "";
+      const filename =
+        disposition.match(/filename="([^"]+)"/)?.[1] ?? "conversations.zip";
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setMessage("Conversation ZIP downloaded.");
+    } catch {
+      setMessage("Could not download conversations.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function openActivePrompt() {
     setLoading(true);
     try {
@@ -535,6 +577,12 @@ export function TeacherHistory() {
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
   }, [items, search, sortBy]);
+  const batchDownloadCount = useMemo(
+    () =>
+      items.filter((item) => !batchExcludedStudentIds.has(item.studentId))
+        .length,
+    [items],
+  );
   const groupedItems = useMemo(() => {
     return visibleItems.reduce<
       Array<{ label: string; items: ConversationListItem[] }>
@@ -845,6 +893,15 @@ export function TeacherHistory() {
                   </div>
                 )}
               </div>
+              <IconButton
+                icon={<DownloadGlyph />}
+                text={`Download ZIP (${batchDownloadCount})`}
+                bordered
+                title="Download conversations in this date range"
+                disabled={loading || !isUnlocked || batchDownloadCount === 0}
+                onClick={downloadBatch}
+                className={styles.batchDownloadButton}
+              />
             </div>
           </div>
           <div className={styles.listCards}>

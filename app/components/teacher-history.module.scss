@@ -210,12 +210,28 @@
 }
 
 .dateFilterRow {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
 
 .dateMenu {
   position: relative;
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.batchDownloadButton {
+  flex: 0 0 auto;
+  min-height: 36px;
+  height: 36px;
+  padding: 8px 10px;
+  color: var(--primary);
+
+  :global(.icon-button-text) {
+    font-size: 11px;
+    white-space: nowrap;
+  }
 }
 
 .count {
@@ -795,6 +811,15 @@
   }
 
   .dateButton {
+    width: 100%;
+  }
+
+  .dateFilterRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .batchDownloadButton {
     width: 100%;
   }
 
