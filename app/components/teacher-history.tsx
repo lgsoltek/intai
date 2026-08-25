@@ -895,7 +895,7 @@ export function TeacherHistory() {
               </div>
               <IconButton
                 icon={<DownloadGlyph />}
-                text={`Download ZIP (${batchDownloadCount})`}
+                text={`(${batchDownloadCount})`}
                 bordered
                 title="Download conversations in this date range"
                 disabled={loading || !isUnlocked || batchDownloadCount === 0}
