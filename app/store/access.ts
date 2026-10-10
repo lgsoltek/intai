@@ -8,6 +8,7 @@ import { getHeaders } from "../client/api";
 import { getClientConfig } from "../config/client";
 import { createPersistStore } from "../utils/store";
 import { ensure } from "../utils/clone";
+import { isRetiredStudentId } from "../utils/retired-student-ids";
 import { DEFAULT_CONFIG, useAppConfig } from "./config";
 
 let fetchState = 0; // 0 not fetch, 1 fetching, 2 done
@@ -104,6 +105,15 @@ export const useAccessStore = createPersistStore(
   {
     name: StoreKey.Access,
     version: 2,
+    onRehydrateStorage: () => (state) => {
+      if (state && isRetiredStudentId(state.studentId)) {
+        state.update((access) => {
+          access.studentId = "";
+          access.studentName = "";
+          access.studentConfirmed = false;
+        });
+      }
+    },
     migrate(persistedState, version) {
       if (version < 2) {
         const state = persistedState as {
